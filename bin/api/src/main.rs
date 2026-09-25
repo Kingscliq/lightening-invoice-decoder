@@ -1,6 +1,7 @@
 mod config;
 mod http;
 mod logger;
+mod openapi;
 mod router;
 
 use anyhow::Context;

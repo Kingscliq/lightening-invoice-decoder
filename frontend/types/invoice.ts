@@ -27,7 +27,6 @@ export type DecodedInvoice = {
   min_final_cltv_expiry_delta: number;
   fallback_addresses: string[];
   route_hints: RouteHint[];
-  features: string | null;
 };
 
 export type ApiErrorResponse = {

@@ -1,5 +1,21 @@
 # HTTP API
 
+## Interactive documentation
+
+With the API running locally, open:
+
+```text
+http://localhost:3001/swagger-ui/
+```
+
+The underlying OpenAPI document is available at:
+
+```text
+http://localhost:3001/api-docs/openapi.json
+```
+
+Swagger UI can execute the health and invoice-decoding requests directly.
+
 ## Health check
 
 ```http

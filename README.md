@@ -18,7 +18,7 @@ steps.
 6. ✅ Test the Axum endpoint, middleware, and error mappings.
 7. Build and test the local CLI as a TUI with Ratatui.
 8. Implement the CLI's optional remote API mode.
-9. Connect the Next.js form to Axum.
+9. ✅ Connect the Next.js form to Axum.
 10. Understand and run the Docker and Render deployment flow.
 
 ## Overview
@@ -669,6 +669,10 @@ The API listens on `http://localhost:3001` when `PORT` is not set. The working e
 ```http
 GET /health
 ```
+
+Interactive Swagger documentation is available at
+`http://localhost:3001/swagger-ui/`, and the generated OpenAPI JSON is available
+at `http://localhost:3001/api-docs/openapi.json`.
 
 The decode route uses the completed decoder library. You can also invoke the
 current command-line output with:

@@ -8,8 +8,13 @@ use axum::{
 };
 
 use tower_http::{cors::CorsLayer, set_header::SetResponseHeaderLayer, trace::TraceLayer};
+use utoipa::OpenApi;
+use utoipa_swagger_ui::SwaggerUi;
 
-use crate::http::routes::{decode_invoice, health};
+use crate::{
+    http::routes::{decode_invoice, health},
+    openapi::ApiDoc,
+};
 
 pub fn create_router(allowed_origin: &str) -> anyhow::Result<Router> {
     let allowed_origin = HeaderValue::from_str(allowed_origin)
@@ -32,6 +37,7 @@ pub fn create_router(allowed_origin: &str) -> anyhow::Result<Router> {
     Ok(Router::new()
         .route("/health", get(health::get))
         .merge(decode_routes)
+        .merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi()))
         .fallback(crate::http::routes::not_found)
         .layer(cors)
         .layer(
@@ -158,6 +164,39 @@ mod tests {
         assert_eq!(
             response.headers()[header::ACCESS_CONTROL_ALLOW_ORIGIN],
             "http://localhost:3000"
+        );
+    }
+
+    #[tokio::test]
+    async fn exposes_the_openapi_document() {
+        let response = app()
+            .oneshot(
+                Request::get("/api-docs/openapi.json")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = json(response).await;
+        assert!(body["paths"]["/health"].is_object());
+        assert!(body["paths"]["/api/v1/invoices/decode/{invoice}"].is_object());
+    }
+
+    #[tokio::test]
+    async fn exposes_swagger_ui() {
+        let response = app()
+            .oneshot(Request::get("/swagger-ui/").body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        assert!(
+            response.headers()[header::CONTENT_TYPE]
+                .to_str()
+                .unwrap()
+                .starts_with("text/html")
         );
     }
 }
