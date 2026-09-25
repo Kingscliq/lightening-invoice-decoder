@@ -16,7 +16,6 @@ pub struct DecodedInvoice {
     pub min_final_cltv_expiry_delta: u64,
     pub fallback_addresses: Vec<String>,
     pub route_hints: Vec<RouteHint>,
-    pub features: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]

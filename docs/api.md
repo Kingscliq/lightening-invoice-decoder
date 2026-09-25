@@ -40,8 +40,7 @@ Once implemented, successful responses will contain the decoded network, amount,
   "signature_valid": true,
   "min_final_cltv_expiry_delta": 40,
   "fallback_addresses": [],
-  "route_hints": [],
-  "features": null
+  "route_hints": []
 }
 ```
 

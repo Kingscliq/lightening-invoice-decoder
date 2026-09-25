@@ -29,11 +29,12 @@ pub fn parse_invoice(input: &str) -> DecodeResult<Bolt11Invoice> {
         .map_err(|error| DecodeError::InvalidInvoice(error.to_string()))
 }
 
-/// Entry point shared by the API and CLI.
+/// Returns the fields decoded from a valid BOLT11 invoice.
 ///
 /// # Errors
 ///
-/// Returns the fields decoded from a valid BOLT11 invoice.
+/// Returns [`DecodeError`] when the invoice cannot be parsed or its expiry
+/// timestamp overflows.
 pub fn decode(input: &str) -> DecodeResult<DecodedInvoice> {
     let invoice = parse_invoice(input)?;
     let (description, description_hash) = match invoice.description() {
@@ -102,7 +103,6 @@ pub fn decode(input: &str) -> DecodeResult<DecodedInvoice> {
         min_final_cltv_expiry_delta,
         fallback_addresses,
         route_hints,
-        features: None,
     })
 }
 
