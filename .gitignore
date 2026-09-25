@@ -1,0 +1,9 @@
+/target
+**/node_modules
+**/.next
+**/out
+.env
+frontend/.env.local
+.DS_Store
+npm-debug.log*
+*.tsbuildinfo

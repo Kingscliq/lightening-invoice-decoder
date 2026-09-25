@@ -1,0 +1,14 @@
+services:
+  # TODO(lesson 10): Deploy only after the Dockerfile and environment values
+  # have been walked through locally.
+  - type: web
+    name: lightning-tool-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: ALLOWED_ORIGIN
+        sync: false
+      - key: RUST_LOG
+        value: lightning_api=info,tower_http=info
