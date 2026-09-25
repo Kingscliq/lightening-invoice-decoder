@@ -5,12 +5,19 @@ use anyhow::Context;
 #[derive(Clone, Debug)]
 pub struct AppConfig {
     pub port: u16,
+    pub allowed_origin: String,
 }
 
 impl AppConfig {
     pub fn from_env() -> anyhow::Result<Self> {
         let port = parse_env("PORT", 3_001_u16)?;
-        Ok(Self { port })
+        let allowed_origin =
+            std::env::var("ALLOWED_ORIGIN").unwrap_or_else(|_| "http://localhost:3000".to_owned());
+
+        Ok(Self {
+            port,
+            allowed_origin,
+        })
     }
 
     pub fn socket_address(&self) -> SocketAddr {

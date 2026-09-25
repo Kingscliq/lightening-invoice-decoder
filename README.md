@@ -15,7 +15,7 @@ steps.
 3. ✅ Extract route hints and optional fields.
 4. ✅ Understand and expose signature and expiry validation.
 5. ✅ Complete the decoder's output model and tests.
-6. Test the Axum endpoint and error mappings.
+6. ✅ Test the Axum endpoint, middleware, and error mappings.
 7. Build and test the local CLI as a TUI with Ratatui.
 8. Implement the CLI's optional remote API mode.
 9. Connect the Next.js form to Axum.

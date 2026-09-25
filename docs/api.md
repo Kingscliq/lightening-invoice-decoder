@@ -23,7 +23,7 @@ Example:
 curl "http://localhost:3001/api/v1/invoices/decode/$(printf %s 'lnbcrt...' | jq -sRr @uri)"
 ```
 
-Once implemented, successful responses will contain the decoded network, amount, description, timestamps, payment hash, payee key, route hints, and validation status. Unix timestamps are expressed in seconds, and amounts are expressed in millisatoshis.
+Successful responses contain the decoded network, amount, description, timestamps, payment hash, payee key, route hints, and validation status. Unix timestamps are expressed in seconds, and amounts are expressed in millisatoshis.
 
 ```json
 {
@@ -55,6 +55,8 @@ Errors use a stable envelope:
 }
 ```
 
-The skeleton returns `501` for decoding that has not been implemented. The finished endpoint will also use `400` for empty or invalid input, `404` for unknown routes, `414` when the invoice exceeds the configured limit, and `422` for a decoded value that cannot be represented safely.
+The endpoint uses `400` for empty or invalid input, `404` for unknown routes, `414` when the invoice exceeds the configured limit, and `422` for a decoded value that cannot be represented safely.
 
-TODO for the API lesson: responses should use `Cache-Control: no-store`. Clients should avoid storing or logging invoice URLs unless users explicitly consent.
+Decode responses include `Cache-Control: no-store`. CORS allows the origin configured by `ALLOWED_ORIGIN`, which defaults to `http://localhost:3000`.
+
+Request tracing records the HTTP method and response information but deliberately omits the URI because the GET path contains the complete invoice. Clients and upstream proxies should also avoid storing or logging invoice URLs unless users explicitly consent.
