@@ -1,19 +1,20 @@
-mod app;
 mod config;
 mod http;
+mod logger;
+mod router;
 
 use anyhow::Context;
 use config::AppConfig;
-use tracing_subscriber::EnvFilter;
+use router::create_router;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     load_environment()?;
-    init_tracing();
+    logger::init();
 
     let config = AppConfig::from_env()?;
     let address = config.socket_address();
-    let app = app::build();
+    let app = create_router();
     let listener = tokio::net::TcpListener::bind(address)
         .await
         .with_context(|| format!("failed to bind API server to {address}"))?;
@@ -31,13 +32,6 @@ fn load_environment() -> anyhow::Result<()> {
         Err(dotenvy::Error::Io(error)) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
         Err(error) => Err(error.into()),
     }
-}
-
-fn init_tracing() {
-    let filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new("lightning_api=info,tower_http=info"));
-
-    tracing_subscriber::fmt().with_env_filter(filter).init();
 }
 
 async fn shutdown_signal() {

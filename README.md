@@ -2,11 +2,11 @@
 
 A learning-focused capstone for decoding and validating Lightning Network BOLT11 invoices without requiring the user to run a Lightning node.
 
-## Current status: skeleton
+## Current status: decoder complete, integrations in progress
 
-This repository currently provides the agreed folder structure, type contracts, runnable Axum server, health endpoint, CLI command shape, frontend layout, and deployment files. The actual BOLT11 decoder and the client integrations are deliberately left unfinished.
-
-Non-empty decode requests currently return `501 Not Implemented`. Search the repository for `TODO(lesson ...)` to find the planned implementation points. This is intentional: each part will be implemented and explained in a separate learning step.
+The framework-independent BOLT11 decoder is complete. The Axum API, TUI client,
+Next.js frontend, and deployment flow are being completed as separate learning
+steps.
 
 ### Learning roadmap
 
@@ -16,7 +16,7 @@ Non-empty decode requests currently return `501 Not Implemented`. Search the rep
 4. ✅ Understand and expose signature and expiry validation.
 5. ✅ Complete the decoder's output model and tests.
 6. Test the Axum endpoint and error mappings.
-7. Complete and test the local CLI experience.
+7. Build and test the local CLI as a TUI with Ratatui.
 8. Implement the CLI's optional remote API mode.
 9. Connect the Next.js form to Axum.
 10. Understand and run the Docker and Render deployment flow.
@@ -596,12 +596,12 @@ lightning-tool/
 │   │   ├── Cargo.toml
 │   │   └── src/
 │   │       ├── main.rs
-│   │       ├── app.rs
+│   │       ├── router.rs
+│   │       ├── logger.rs
 │   │       ├── config.rs
 │   │       └── http/
 │   │           ├── mod.rs
 │   │           ├── error.rs
-│   │           ├── state.rs
 │   │           ├── dto/
 │   │           │   ├── mod.rs
 │   │           │   └── invoice.rs
@@ -670,7 +670,8 @@ The API listens on `http://localhost:3001` when `PORT` is not set. The working e
 GET /health
 ```
 
-The decode route exists, but deliberately returns `501 Not Implemented` for non-empty input. You can observe the local CLI placeholder with:
+The decode route uses the completed decoder library. You can also invoke the
+current command-line output with:
 
 ```bash
 cargo run -p lightning-cli --bin bolt11-decoder -- \
@@ -697,7 +698,9 @@ The frontend is then available at `http://localhost:3000`. Its form is present, 
 
 ## Command-line interface
 
-The optional CLI is structured to support both local and remote decoding once the corresponding TODOs are implemented.
+The optional CLI will use Ratatui for an interactive terminal interface while
+supporting both local and remote decoding. Local decoding will call the shared
+library directly; remote decoding will call the Axum API.
 
 Local mode will call `invoice-decoder` directly and work without a running API:
 

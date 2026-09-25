@@ -15,7 +15,7 @@ GET /api/v1/invoices/decode/{invoice}
 Accept: application/json
 ```
 
-`invoice` is the complete URL-encoded BOLT11 string, not a payment hash or database ID. This is the planned contract. At the skeleton stage, non-empty input receives `501 Not Implemented` until the decoder lessons are complete.
+`invoice` is the complete URL-encoded BOLT11 string, not a payment hash or database ID. The handler passes it to the shared decoder library and returns the decoded fields as JSON.
 
 Example:
 
