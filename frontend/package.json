@@ -1,5 +1,5 @@
 {
-  "name": "lightning-tool-frontend",
+  "name": "lightening-decoder-web",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -20,4 +20,3 @@
     "typescript": "7.0.2"
   }
 }
-

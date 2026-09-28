@@ -1,4 +1,4 @@
-# Rust and Docker: learning notes
+# Docker deployment
 
 Docker does not run Rust source code directly. Cargo first compiles the source into a native executable, and the container then runs that executable.
 
@@ -18,10 +18,10 @@ The builder image is large because it contains the compiler and build tools. Tho
 
 This pattern is called a **multi-stage build**.
 
-## Dockerfile walkthrough
+## Dockerfile reference
 
 1. `FROM rust:1.91-bookworm AS builder` creates the compilation stage.
-2. `WORKDIR /app` selects the directory used by later instructions.
+2. `WORKDIR /app` selects the working directory for subsequent instructions.
 3. The `COPY` instructions place the Cargo workspace inside the image.
 4. `cargo build --locked --release -p lightning-api` compiles only the API package.
 5. `FROM debian:bookworm-slim AS runtime` starts a fresh, smaller stage.
@@ -53,11 +53,11 @@ Axum reads the `PORT` environment variable and binds to `0.0.0.0`. Binding to `0
 Build and run the backend container with:
 
 ```bash
-docker build -t lightning-tool-api .
+docker build -t lightening-decoder-api .
 docker run --rm -p 3001:10000 \
   -e PORT=10000 \
   -e ALLOWED_ORIGIN=http://localhost:3000 \
-  lightning-tool-api
+  lightening-decoder-api
 ```
 
 The mapping `3001:10000` means:

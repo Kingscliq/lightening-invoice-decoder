@@ -45,7 +45,7 @@ Successful responses contain the decoded network, amount, description, timestamp
 {
   "network": "regtest",
   "amount_msat": 1000000,
-  "description": "Capstone test payment",
+  "description": "Test payment",
   "description_hash": null,
   "payment_hash": "82f14a...",
   "payee_public_key": "0384b0...",

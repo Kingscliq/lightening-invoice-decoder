@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: lightning-tool-api
+    name: lightening-decoder-api
     runtime: docker
     dockerfilePath: ./Dockerfile
     dockerContext: .

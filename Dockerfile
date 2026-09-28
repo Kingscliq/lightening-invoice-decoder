@@ -20,7 +20,7 @@ RUN cargo build --locked --release -p lightning-api
 # the Rust compiler, Cargo, or the source code.
 FROM debian:bookworm-slim AS runtime
 
-# ca-certificates enables trusted outbound HTTPS if the API needs it later.
+# ca-certificates provides trusted roots for outbound HTTPS connections.
 # The unprivileged user avoids running the web server as root.
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends ca-certificates \

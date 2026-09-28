@@ -1,6 +1,6 @@
 # Architecture
 
-The MVP is a stateless BOLT11 decoder. It does not connect to a Lightning node.
+Lightening Decoder is a stateless BOLT11 decoder. It does not connect to a Lightning node.
 The frontend, API, CLI, and decoder library use the structure below.
 
 ```text
@@ -35,9 +35,11 @@ The decoder is stateless and needs neither a database nor persistent storage.
 Invoice strings can reveal payment metadata, so request tracing deliberately
 excludes complete request URLs.
 
-## Future node integration
+## Lightning node boundary
 
-Creating invoices, paying invoices, opening channels, and reading private payment state require a Lightning node. Those features should be added behind a separate backend-only interface:
+Creating invoices, paying invoices, opening channels, and reading private
+payment state require a Lightning node. Any node integration belongs behind a
+separate backend-only interface:
 
 ```text
 Browser -> Axum -> authenticated node adapter -> LND/CLN/LDK node
