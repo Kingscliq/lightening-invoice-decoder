@@ -20,7 +20,7 @@ async fn main() -> anyhow::Result<()> {
         .await
         .with_context(|| format!("failed to bind API server to {address}"))?;
 
-    tracing::info!(%address, "Lightning Tool API listening");
+    tracing::info!(%address, "Lightening Decoder API listening");
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())
         .await

@@ -1,4 +1,4 @@
-# Lightning Tool — BOLT11 Invoice Decoder
+# Lightening Decoder — BOLT11 Invoice Decoder
 
 A learning-focused capstone for decoding and validating Lightning Network BOLT11 invoices without requiring the user to run a Lightning node.
 

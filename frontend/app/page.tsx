@@ -4,7 +4,7 @@ export default function Home() {
   return (
     <main className="page-shell">
       <section className="hero">
-        <p className="eyebrow">Lightning Tool</p>
+        <p className="eyebrow">Lightening Decoder</p>
         <h1>Understand any BOLT11 invoice.</h1>
         <p className="lede">
           Paste a Lightning payment request to inspect its network, amount,
@@ -16,4 +16,3 @@ export default function Home() {
     </main>
   );
 }
-

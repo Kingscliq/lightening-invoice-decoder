@@ -1,6 +1,6 @@
 [package]
 name = "lightning-cli"
-description = "Local and remote CLI for the Lightning Tool decoder"
+description = "Local and remote CLI for the Lightening Decoder"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

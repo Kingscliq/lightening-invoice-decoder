@@ -31,39 +31,45 @@ export function InvoiceDecoder() {
     }
   }
 
+  function resetDecoder() {
+    setInvoice("");
+    setResult(null);
+    setError(null);
+  }
+
+  if (result) {
+    return <InvoiceResult invoice={result} onReset={resetDecoder} />;
+  }
+
   return (
-    <>
-      <form className="decoder-card" onSubmit={handleSubmit} aria-busy={isLoading}>
-        <label className="field-label" htmlFor="invoice">
-          BOLT11 invoice
-        </label>
-        <textarea
-          id="invoice"
-          name="invoice"
-          placeholder="lnbc... or lnbcrt..."
-          value={invoice}
-          onChange={(event) => setInvoice(event.target.value)}
-          spellCheck={false}
-          autoCapitalize="none"
-          autoCorrect="off"
-          required
-        />
+    <form className="decoder-card" onSubmit={handleSubmit} aria-busy={isLoading}>
+      <label className="field-label" htmlFor="invoice">
+        BOLT11 invoice
+      </label>
+      <textarea
+        id="invoice"
+        name="invoice"
+        placeholder="lnbc... or lnbcrt..."
+        value={invoice}
+        onChange={(event) => setInvoice(event.target.value)}
+        spellCheck={false}
+        autoCapitalize="none"
+        autoCorrect="off"
+        required
+      />
 
-        <div className="actions">
-          <p className="hint">The invoice is decoded by the Rust API.</p>
-          <button type="submit" disabled={isLoading || !invoice.trim()}>
-            {isLoading ? "Decoding…" : "Decode invoice"}
-          </button>
-        </div>
+      <div className="actions">
+        <p className="hint">The invoice is decoded by the Rust API.</p>
+        <button type="submit" disabled={isLoading || !invoice.trim()}>
+          {isLoading ? "Decoding…" : "Decode invoice"}
+        </button>
+      </div>
 
-        {error ? (
-          <p className="error" role="alert">
-            {error}
-          </p>
-        ) : null}
-      </form>
-
-      {result ? <InvoiceResult invoice={result} /> : null}
-    </>
+      {error ? (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      ) : null}
+    </form>
   );
 }

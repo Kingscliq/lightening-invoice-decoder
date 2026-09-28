@@ -11,7 +11,7 @@ use crate::http::{
 #[derive(OpenApi)]
 #[openapi(
     info(
-        title = "Lightning Tool API",
+        title = "Lightening Decoder API",
         version = "0.1.0",
         description = "Decode and validate BOLT11 Lightning invoices"
     ),

@@ -1,6 +1,6 @@
 [package]
 name = "lightning-api"
-description = "Axum HTTP API for the Lightning Tool"
+description = "Axum HTTP API for the Lightening Decoder"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
