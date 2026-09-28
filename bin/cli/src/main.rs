@@ -1,5 +1,6 @@
 mod cli;
 mod remote;
+mod terminal_ui;
 
 use anyhow::Context;
 use clap::Parser;
@@ -15,7 +16,8 @@ fn main() {
 fn run() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
-    match cli.command {
+    match cli.command.unwrap_or(Command::Tui) {
+        Command::Tui => terminal_ui::run(),
         Command::Decode { invoice, api_url } => {
             // TODO(lesson 7): Add CLI-focused tests, choose the final output
             // format, and explain how `anyhow::Context` builds an error chain.
@@ -26,8 +28,7 @@ fn run() -> anyhow::Result<()> {
             };
 
             println!("{}", serde_json::to_string_pretty(&decoded)?);
+            Ok(())
         }
     }
-
-    Ok(())
 }

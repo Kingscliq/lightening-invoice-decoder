@@ -706,6 +706,24 @@ The optional CLI will use Ratatui for an interactive terminal interface while
 supporting both local and remote decoding. Local decoding will call the shared
 library directly; remote decoding will call the Axum API.
 
+Launch the TUI with:
+
+```bash
+cargo run -p lightning-cli --bin bolt11-decoder
+```
+
+The TUI accepts an invoice, decodes it locally, displays its fields, and lets
+you scroll long route-hint details with the arrow keys or `j`/`k`. Use `n` or
+`r` to decode another invoice and `q`, `Esc`, or `Ctrl+C` to quit.
+
+Local decoding normally starts immediately. To keep the loading spinner visible
+for a demonstration, configure an optional delay in milliseconds:
+
+```bash
+LIGHTNING_TUI_DEMO_DELAY_MS=2000 \
+  cargo run -p lightning-cli --bin bolt11-decoder
+```
+
 Local mode will call `invoice-decoder` directly and work without a running API:
 
 ```bash

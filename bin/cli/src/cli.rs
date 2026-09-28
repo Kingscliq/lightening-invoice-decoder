@@ -8,11 +8,14 @@ use clap::{Parser, Subcommand};
 )]
 pub struct Cli {
     #[command(subcommand)]
-    pub command: Command,
+    pub command: Option<Command>,
 }
 
 #[derive(Debug, Subcommand)]
 pub enum Command {
+    /// Open the interactive terminal interface. This is the default command.
+    Tui,
+
     /// Decode an invoice locally, or through the hosted API when --api-url is supplied.
     Decode {
         /// Complete BOLT11 invoice string.
