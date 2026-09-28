@@ -1,6 +1,7 @@
 # Architecture
 
-The planned MVP is a stateless BOLT11 decoder. It does not connect to a Lightning node. The structure below exists, while the arrows involving actual decoding are intentionally TODOs.
+The MVP is a stateless BOLT11 decoder. It does not connect to a Lightning node.
+The frontend, API, CLI, and decoder library use the structure below.
 
 ```text
 Browser (Next.js)
@@ -21,8 +22,8 @@ lightning-invoice
 
 - `frontend/` owns input, loading and error states, and result presentation.
 - `bin/api/` owns HTTP concerns: routing, CORS, limits, and error responses.
-- `bin/cli/` will decode locally by default and later call the API in remote mode.
-- `crates/invoice-decoder/` is where framework-independent parsing and validation will be implemented.
+- `bin/cli/` decodes locally by default and can call the API in remote mode.
+- `crates/invoice-decoder/` provides framework-independent parsing and validation.
 
 Keeping the decoder in a library gives the HTTP API and CLI the same behavior without duplicating protocol logic.
 
@@ -30,7 +31,9 @@ Keeping the decoder in a library gives the HTTP API and CLI the same behavior wi
 
 The frontend may be deployed to Vercel and the backend Docker image to Render. Render supplies `PORT`; the API listens on `0.0.0.0:$PORT`. `ALLOWED_ORIGIN` must be the deployed frontend origin.
 
-The decoder is designed to be stateless and needs neither a database nor persistent storage. Invoice strings can reveal payment metadata, so the tracing TODO must exclude complete request URLs.
+The decoder is stateless and needs neither a database nor persistent storage.
+Invoice strings can reveal payment metadata, so request tracing deliberately
+excludes complete request URLs.
 
 ## Future node integration
 

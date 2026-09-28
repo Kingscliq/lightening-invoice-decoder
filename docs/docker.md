@@ -50,7 +50,7 @@ The root `.dockerignore` prevents unrelated build output, frontend dependencies,
 
 Axum reads the `PORT` environment variable and binds to `0.0.0.0`. Binding to `0.0.0.0` matters inside a container because binding only to `127.0.0.1` would make the process unreachable from outside that container.
 
-Later, when we reach the Docker lesson, the workflow will be:
+Build and run the backend container with:
 
 ```bash
 docker build -t lightning-tool-api .
@@ -66,4 +66,6 @@ The mapping `3001:10000` means:
 localhost:3001 -> container port 10000 -> Axum
 ```
 
-These commands are documented for the later lesson; Docker is not required to begin implementing the decoder library.
+These commands build the production image and expose its API on
+`http://localhost:3001`. Docker is not required when running the API directly
+with Cargo.

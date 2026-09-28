@@ -22,6 +22,26 @@ const SPINNER_FRAMES: [&str; 8] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "�
 
 type DecodeMessage = Result<DecodedInvoice, String>;
 
+#[derive(Clone, Default)]
+enum DecodeSource {
+    #[default]
+    Local,
+    Remote(String),
+}
+
+impl DecodeSource {
+    fn from_api_url(api_url: Option<String>) -> Self {
+        api_url.map_or(Self::Local, Self::Remote)
+    }
+
+    fn label(&self) -> &'static str {
+        match self {
+            Self::Local => "Local crate",
+            Self::Remote(_) => "Remote API",
+        }
+    }
+}
+
 #[derive(Default)]
 enum DecodeStatus {
     #[default]
@@ -34,12 +54,20 @@ enum DecodeStatus {
 #[derive(Default)]
 struct App {
     invoice_input: String,
+    source: DecodeSource,
     status: DecodeStatus,
     decode_receiver: Option<Receiver<DecodeMessage>>,
     result_scroll: u16,
 }
 
 impl App {
+    fn new(api_url: Option<String>) -> Self {
+        Self {
+            source: DecodeSource::from_api_url(api_url),
+            ..Self::default()
+        }
+    }
+
     fn is_decoding(&self) -> bool {
         matches!(self.status, DecodeStatus::Decoding)
     }
@@ -61,10 +89,18 @@ impl App {
         self.status = DecodeStatus::Decoding;
         self.result_scroll = 0;
         let demo_delay = demo_decode_delay();
+        let source = self.source.clone();
 
         thread::spawn(move || {
             thread::sleep(demo_delay);
-            let result = invoice_decoder::decode(&invoice).map_err(|error| error.to_string());
+            let result = match source {
+                DecodeSource::Local => {
+                    invoice_decoder::decode(&invoice).map_err(|error| error.to_string())
+                }
+                DecodeSource::Remote(api_url) => {
+                    crate::remote::decode(&api_url, &invoice).map_err(|error| error.to_string())
+                }
+            };
             let _ = sender.send(result);
         });
     }
@@ -136,9 +172,9 @@ fn advanced_scroll_limit(invoice: &DecodedInvoice) -> u16 {
     u16::try_from(line_count).unwrap_or(u16::MAX)
 }
 
-pub fn run() -> anyhow::Result<()> {
+pub fn run(api_url: Option<String>) -> anyhow::Result<()> {
     let mut terminal = ratatui::try_init().context("failed to initialize the terminal")?;
-    let mut app = App::default();
+    let mut app = App::new(api_url);
     let result = run_event_loop(&mut terminal, &mut app);
     ratatui::try_restore().context("failed to restore the terminal")?;
     result
@@ -227,7 +263,7 @@ fn draw_input(frame: &mut Frame, app: &App) {
     ])
     .areas(frame.area());
 
-    let header = Paragraph::new("Lightening Decoder")
+    let header = Paragraph::new(format!("Lightening Decoder · {}", app.source.label()))
         .alignment(Alignment::Center)
         .style(
             Style::default()
@@ -256,13 +292,13 @@ fn draw_input(frame: &mut Frame, app: &App) {
 
     let status_line = match &app.status {
         DecodeStatus::Idle => Line::styled(
-            "Waiting for an invoice",
+            format!("Waiting for an invoice · {}", app.source.label()),
             Style::default().fg(Color::DarkGray),
         ),
         DecodeStatus::Decoding => {
             let spinner = SPINNER_FRAMES[frame.count() % SPINNER_FRAMES.len()];
             Line::styled(
-                format!("{spinner} Decoding invoice..."),
+                format!("{spinner} Decoding invoice via {}...", app.source.label()),
                 Style::default()
                     .fg(Color::Yellow)
                     .add_modifier(Modifier::BOLD),
@@ -341,7 +377,7 @@ fn draw_result(frame: &mut Frame, app: &App, invoice: &DecodedInvoice) {
     ])
     .areas(technical_area);
 
-    let header = Paragraph::new("Decoded invoice")
+    let header = Paragraph::new(format!("Decoded invoice · {}", app.source.label()))
         .alignment(Alignment::Center)
         .style(
             Style::default()
@@ -665,5 +701,13 @@ mod tests {
     #[test]
     fn formats_unix_timestamps_as_utc() {
         assert_eq!(format_unix_timestamp(0), "1970-01-01T00:00:00Z");
+    }
+
+    #[test]
+    fn selects_the_remote_source_when_an_api_url_is_present() {
+        let app = App::new(Some("http://localhost:3001".to_owned()));
+
+        assert!(matches!(app.source, DecodeSource::Remote(_)));
+        assert_eq!(app.source.label(), "Remote API");
     }
 }

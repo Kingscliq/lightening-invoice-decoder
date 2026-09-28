@@ -15,12 +15,11 @@ fn main() {
 
 fn run() -> anyhow::Result<()> {
     let cli = Cli::parse();
+    let api_url = cli.api_url;
 
     match cli.command.unwrap_or(Command::Tui) {
-        Command::Tui => terminal_ui::run(),
-        Command::Decode { invoice, api_url } => {
-            // TODO(lesson 7): Add CLI-focused tests, choose the final output
-            // format, and explain how `anyhow::Context` builds an error chain.
+        Command::Tui => terminal_ui::run(api_url),
+        Command::Decode { invoice } => {
             let decoded = if let Some(api_url) = api_url {
                 remote::decode(&api_url, &invoice).context("remote invoice decoding failed")?
             } else {

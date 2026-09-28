@@ -1,6 +1,4 @@
 services:
-  # TODO(lesson 10): Deploy only after the Dockerfile and environment values
-  # have been walked through locally.
   - type: web
     name: lightning-tool-api
     runtime: docker

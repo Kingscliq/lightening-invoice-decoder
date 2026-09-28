@@ -1,4 +1,3 @@
-# TODO(lesson 10): Build and run this together before deploying it.
 # Stage 1 is the build environment. It contains rustc, Cargo and the other
 # tools needed to compile the API. These tools will not be copied into the
 # final image.

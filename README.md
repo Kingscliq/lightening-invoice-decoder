@@ -682,7 +682,7 @@ cargo run -p lightning-cli --bin bolt11-decoder -- \
   decode 'lnbcrt...'
 ```
 
-The following remote mode command shape is reserved, but its HTTP implementation is also a TODO:
+Use remote mode to decode through the running Axum API:
 
 ```bash
 cargo run -p lightning-cli --bin bolt11-decoder -- \
@@ -698,7 +698,10 @@ npm install
 npm run dev
 ```
 
-The frontend is then available at `http://localhost:3000`. Its form is present, but the API call is a TODO. See [`docs/architecture.md`](docs/architecture.md), [`docs/api.md`](docs/api.md), and [`docs/docker.md`](docs/docker.md) for the boundaries and planned contracts.
+The frontend is then available at `http://localhost:3000` and calls the Axum
+decode endpoint. See [`docs/architecture.md`](docs/architecture.md),
+[`docs/api.md`](docs/api.md), and [`docs/docker.md`](docs/docker.md) for the
+boundaries and contracts.
 
 ## Command-line interface
 
@@ -715,6 +718,16 @@ cargo run -p lightning-cli --bin bolt11-decoder
 The TUI accepts an invoice, decodes it locally, displays its fields, and lets
 you scroll long route-hint details with the arrow keys or `j`/`k`. Use `n` or
 `r` to decode another invoice and `q`, `Esc`, or `Ctrl+C` to quit.
+
+Run the same TUI through the API with either the option or environment variable:
+
+```bash
+cargo run -p lightning-cli --bin bolt11-decoder -- \
+  --api-url http://localhost:3001
+
+LIGHTNING_API_URL=http://localhost:3001 \
+  cargo run -p lightning-cli --bin bolt11-decoder
+```
 
 Local decoding normally starts immediately. To keep the loading spinner visible
 for a demonstration, configure an optional delay in milliseconds:
@@ -742,7 +755,8 @@ Local mode:  CLI → invoice-decoder
 Remote mode: CLI → Render API → invoice-decoder
 ```
 
-Local mode is the planned default because it will be faster and work offline. Remote mode will depend on network access and API availability.
+Local mode is the default because it is faster and works offline. Remote mode
+depends on network access and API availability.
 
 ## Error-handling strategy
 
@@ -787,7 +801,10 @@ Next.js frontend on Vercel
 Rust/Axum API in a Render Docker web service
 ```
 
-Only the Rust backend requires a Docker image. The root `Dockerfile` is a documented two-stage learning example: one image compiles Rust and a much smaller image runs the resulting executable. We will walk through and run it during lesson 10; see [`docs/docker.md`](docs/docker.md).
+Only the Rust backend requires a Docker image. The root `Dockerfile` uses a
+two-stage build: one image compiles Rust and a much smaller image runs the
+resulting executable. See [`docs/docker.md`](docs/docker.md) for the complete
+walkthrough and commands.
 
 ### Render port binding
 
