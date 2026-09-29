@@ -7,6 +7,14 @@ without paying the invoice or connecting to a Lightning node.
 The project provides a Next.js web client, an Axum HTTP API, a Ratatui terminal
 client, and a reusable Rust decoder library.
 
+## Live API
+
+- Web client: [lightening-invoice-decoder.vercel.app](https://lightening-invoice-decoder.vercel.app/)
+- API: [lightening-decoder-api.onrender.com](https://lightening-decoder-api.onrender.com)
+- Swagger UI: [lightening-decoder-api.onrender.com/swagger-ui/](https://lightening-decoder-api.onrender.com/swagger-ui/)
+- Health check: [lightening-decoder-api.onrender.com/health](https://lightening-decoder-api.onrender.com/health)
+- OpenAPI JSON: [lightening-decoder-api.onrender.com/api-docs/openapi.json](https://lightening-decoder-api.onrender.com/api-docs/openapi.json)
+
 ## Features
 
 - Decode mainnet, testnet, signet, and regtest invoices
