@@ -15,7 +15,7 @@ async fn main() -> anyhow::Result<()> {
 
     let config = AppConfig::from_env()?;
     let address = config.socket_address();
-    let app = create_router(&config.allowed_origin)?;
+    let app = create_router(&config.allowed_origins)?;
     let listener = tokio::net::TcpListener::bind(address)
         .await
         .with_context(|| format!("failed to bind API server to {address}"))?;

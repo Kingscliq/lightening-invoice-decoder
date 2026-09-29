@@ -7,7 +7,7 @@ services:
     dockerContext: .
     healthCheckPath: /health
     envVars:
-      - key: ALLOWED_ORIGIN
+      - key: ALLOWED_ORIGINS
         sync: false
       - key: RUST_LOG
         value: lightning_api=info,tower_http=info

@@ -73,6 +73,8 @@ Errors use a stable envelope:
 
 The endpoint uses `400` for empty or invalid input, `404` for unknown routes, `414` when the invoice exceeds the configured limit, and `422` for a decoded value that cannot be represented safely.
 
-Decode responses include `Cache-Control: no-store`. CORS allows the origin configured by `ALLOWED_ORIGIN`, which defaults to `http://localhost:3000`.
+Decode responses include `Cache-Control: no-store`. CORS allows the
+comma-separated origins configured by `ALLOWED_ORIGINS`, which defaults to
+`http://localhost:3000`.
 
 Request tracing records the HTTP method and response information but deliberately omits the URI because the GET path contains the complete invoice. Clients and upstream proxies should also avoid storing or logging invoice URLs unless users explicitly consent.

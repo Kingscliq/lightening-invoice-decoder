@@ -124,7 +124,7 @@ See [docs/api.md](docs/api.md) for the complete contract and status codes.
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `PORT` | `3001` | API listening port |
-| `ALLOWED_ORIGIN` | `http://localhost:3000` | Permitted browser origin |
+| `ALLOWED_ORIGINS` | `http://localhost:3000` | Comma-separated permitted browser origins |
 | `RUST_LOG` | Application default | API tracing filter |
 | `NEXT_PUBLIC_API_BASE_URL` | `http://localhost:3001` | Web client API origin |
 | `LIGHTNING_API_URL` | Unset | Enables CLI remote mode |
@@ -152,11 +152,11 @@ host.
 docker build -t lightening-decoder-api .
 docker run --rm -p 3001:10000 \
   -e PORT=10000 \
-  -e ALLOWED_ORIGIN=http://localhost:3000 \
+  -e ALLOWED_ORIGINS=http://localhost:3000 \
   lightening-decoder-api
 ```
 
-Set `ALLOWED_ORIGIN` to the deployed frontend origin and
+Set `ALLOWED_ORIGINS` to the local and deployed frontend origins and
 `NEXT_PUBLIC_API_BASE_URL` to the deployed API origin. See
 [docs/docker.md](docs/docker.md) for container details.
 

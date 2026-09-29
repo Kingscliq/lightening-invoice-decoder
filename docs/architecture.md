@@ -29,7 +29,10 @@ Keeping the decoder in a library gives the HTTP API and CLI the same behavior wi
 
 ## Runtime boundaries
 
-The frontend may be deployed to Vercel and the backend Docker image to Render. Render supplies `PORT`; the API listens on `0.0.0.0:$PORT`. `ALLOWED_ORIGIN` must be the deployed frontend origin.
+The frontend may be deployed to Vercel and the backend Docker image to Render.
+Render supplies `PORT`; the API listens on `0.0.0.0:$PORT`.
+`ALLOWED_ORIGINS` contains the comma-separated browser origins permitted to
+call the API.
 
 The decoder is stateless and needs neither a database nor persistent storage.
 Invoice strings can reveal payment metadata, so request tracing deliberately

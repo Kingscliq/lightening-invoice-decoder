@@ -7,7 +7,11 @@ use axum::{
     routing::get,
 };
 
-use tower_http::{cors::CorsLayer, set_header::SetResponseHeaderLayer, trace::TraceLayer};
+use tower_http::{
+    cors::{AllowOrigin, CorsLayer},
+    set_header::SetResponseHeaderLayer,
+    trace::TraceLayer,
+};
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
@@ -16,11 +20,16 @@ use crate::{
     openapi::ApiDoc,
 };
 
-pub fn create_router(allowed_origin: &str) -> anyhow::Result<Router> {
-    let allowed_origin = HeaderValue::from_str(allowed_origin)
-        .context("ALLOWED_ORIGIN is not a valid HTTP origin")?;
+pub fn create_router(allowed_origins: &[String]) -> anyhow::Result<Router> {
+    let allowed_origins = allowed_origins
+        .iter()
+        .map(|origin| {
+            HeaderValue::from_str(origin)
+                .with_context(|| format!("`{origin}` is not a valid HTTP origin"))
+        })
+        .collect::<anyhow::Result<Vec<_>>>()?;
     let cors = CorsLayer::new()
-        .allow_origin(allowed_origin)
+        .allow_origin(AllowOrigin::list(allowed_origins))
         .allow_methods([Method::GET])
         .allow_headers([header::ACCEPT, header::CONTENT_TYPE]);
 
@@ -63,7 +72,11 @@ mod tests {
     const VALID_EXPIRED_INVOICE: &str = "lnbc25m1pvjluezpp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5vdhkven9v5sxyetpdeessp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygs9q5sqqqqqqqqqqqqqqqpqsq67gye39hfg3zd8rgc80k32tvy9xk2xunwm5lzexnvpx6fd77en8qaq424dxgt56cag2dpt359k3ssyhetktkpqh24jqnjyw6uqd08sgptq44qu";
 
     fn app() -> axum::Router {
-        create_router("http://localhost:3000").expect("test origin should be valid")
+        create_router(&[
+            "http://localhost:3000".to_owned(),
+            "https://lightening-decoder.vercel.app".to_owned(),
+        ])
+        .expect("test origins should be valid")
     }
 
     async fn json(response: axum::response::Response) -> Value {
@@ -164,6 +177,28 @@ mod tests {
         assert_eq!(
             response.headers()[header::ACCESS_CONTROL_ALLOW_ORIGIN],
             "http://localhost:3000"
+        );
+    }
+
+    #[tokio::test]
+    async fn allows_a_second_configured_frontend_origin() {
+        let response = app()
+            .oneshot(
+                Request::builder()
+                    .method("OPTIONS")
+                    .uri(format!("/api/v1/invoices/decode/{VALID_EXPIRED_INVOICE}"))
+                    .header(header::ORIGIN, "https://lightening-decoder.vercel.app")
+                    .header(header::ACCESS_CONTROL_REQUEST_METHOD, "GET")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(
+            response.headers()[header::ACCESS_CONTROL_ALLOW_ORIGIN],
+            "https://lightening-decoder.vercel.app"
         );
     }
 
