@@ -15,6 +15,10 @@ client, and a reusable Rust decoder library.
 - Health check: [lightening-decoder-api.onrender.com/health](https://lightening-decoder-api.onrender.com/health)
 - OpenAPI JSON: [lightening-decoder-api.onrender.com/api-docs/openapi.json](https://lightening-decoder-api.onrender.com/api-docs/openapi.json)
 
+## Demo
+
+[Watch the Lightening Decoder demo on Loom](https://www.loom.com/share/f4c26f9deb1a4ff180a2290410bad10d)
+
 ## Features
 
 - Decode mainnet, testnet, signet, and regtest invoices
@@ -79,29 +83,18 @@ Local services:
 
 ## Terminal client
 
-Interactive local mode:
+Open the interactive TUI:
 
 ```bash
 cargo run -p lightning-cli --bin bolt11-decoder
 ```
 
-Interactive remote mode:
+Decode an invoice directly and print JSON. When using Polar, copy the complete
+`payment_request` value:
 
 ```bash
 cargo run -p lightning-cli --bin bolt11-decoder -- \
-  --api-url http://localhost:3001
-```
-
-JSON output:
-
-```bash
-# Local
-cargo run -p lightning-cli --bin bolt11-decoder -- \
-  decode 'lnbcrt...'
-
-# Remote
-cargo run -p lightning-cli --bin bolt11-decoder -- \
-  decode 'lnbcrt...' --api-url http://localhost:3001
+  decode 'paste-complete-BOLT11-payment_request-here'
 ```
 
 Use `Enter` to decode, arrow keys or `j`/`k` to scroll advanced details, `n` or
@@ -132,6 +125,7 @@ See [docs/api.md](docs/api.md) for the complete contract and status codes.
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `PORT` | `3001` | API listening port |
+| `PUBLIC_BASE_URL` | `http://localhost:<PORT>` | Public API URL shown in startup logs |
 | `ALLOWED_ORIGINS` | `http://localhost:3000` | Comma-separated permitted browser origins |
 | `RUST_LOG` | Application default | API tracing filter |
 | `NEXT_PUBLIC_API_BASE_URL` | `http://localhost:3001` | Web client API origin |
@@ -160,6 +154,7 @@ host.
 docker build -t lightening-decoder-api .
 docker run --rm -p 3001:10000 \
   -e PORT=10000 \
+  -e PUBLIC_BASE_URL=http://localhost:3001 \
   -e ALLOWED_ORIGINS=http://localhost:3000 \
   lightening-decoder-api
 ```

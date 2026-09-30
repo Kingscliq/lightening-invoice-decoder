@@ -6,6 +6,7 @@ use anyhow::Context;
 pub struct AppConfig {
     pub port: u16,
     pub allowed_origins: Vec<String>,
+    pub public_base_url: String,
 }
 
 impl AppConfig {
@@ -15,10 +16,15 @@ impl AppConfig {
             .or_else(|_| std::env::var("ALLOWED_ORIGIN"))
             .unwrap_or_else(|_| "http://localhost:3000".to_owned());
         let allowed_origins = parse_allowed_origins(&allowed_origins)?;
+        let public_base_url = std::env::var("PUBLIC_BASE_URL")
+            .unwrap_or_else(|_| format!("http://localhost:{port}"))
+            .trim_end_matches('/')
+            .to_owned();
 
         Ok(Self {
             port,
             allowed_origins,
+            public_base_url,
         })
     }
 

@@ -56,6 +56,7 @@ Build and run the backend container with:
 docker build -t lightening-decoder-api .
 docker run --rm -p 3001:10000 \
   -e PORT=10000 \
+  -e PUBLIC_BASE_URL=http://localhost:3001 \
   -e ALLOWED_ORIGINS=http://localhost:3000 \
   lightening-decoder-api
 ```

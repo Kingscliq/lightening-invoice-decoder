@@ -21,6 +21,11 @@ async fn main() -> anyhow::Result<()> {
         .with_context(|| format!("failed to bind API server to {address}"))?;
 
     tracing::info!(%address, "Lightening Decoder API listening");
+    tracing::info!(url = %config.public_base_url, "API available");
+    tracing::info!(
+        url = %format!("{}/swagger-ui/", config.public_base_url),
+        "Swagger UI available"
+    );
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())
         .await
