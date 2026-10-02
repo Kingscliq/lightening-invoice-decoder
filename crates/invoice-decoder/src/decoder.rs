@@ -4,12 +4,7 @@ use crate::{DecodeError, DecodeResult, DecodedInvoice, RouteHint, RouteHintHop};
 
 pub const MAX_INVOICE_LENGTH: usize = 8_192;
 
-/// Parses and validates a BOLT11 invoice string.
-///
-/// # Errors
-///
-/// Returns [`DecodeError`] when the input is empty, too long, or not a valid
-/// BOLT11 invoice.
+
 pub fn parse_invoice(input: &str) -> DecodeResult<Bolt11Invoice> {
     let input = input.trim();
 
@@ -29,12 +24,6 @@ pub fn parse_invoice(input: &str) -> DecodeResult<Bolt11Invoice> {
         .map_err(|error| DecodeError::InvalidInvoice(error.to_string()))
 }
 
-/// Returns the fields decoded from a valid BOLT11 invoice.
-///
-/// # Errors
-///
-/// Returns [`DecodeError`] when the invoice cannot be parsed or its expiry
-/// timestamp overflows.
 pub fn decode(input: &str) -> DecodeResult<DecodedInvoice> {
     let invoice = parse_invoice(input)?;
     let (description, description_hash) = match invoice.description() {
