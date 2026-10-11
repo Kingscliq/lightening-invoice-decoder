@@ -23,7 +23,11 @@ pub enum Command {
     /// Decode an invoice and print JSON.
     Decode {
         /// Complete BOLT11 invoice string.
-        invoice: String,
+        #[arg(required_unless_present = "image", conflicts_with = "image")]
+        invoice: Option<String>,
+        /// Read a BOLT11 QR code from a local PNG, JPEG, or WebP image.
+        #[arg(long)]
+        image: Option<String>,
     },
 }
 

@@ -27,6 +27,9 @@ client, and a reusable Rust decoder library.
 - Decode fallback addresses and private route hints
 - Use the terminal client locally or through the HTTP API
 - Access an OpenAPI specification and Swagger UI
+- Import BOLT11 QR images in the browser or terminal (PNG, JPEG, WebP)
+- Explore shared, clearly labeled sample invoices
+- Export decoded results as JSON; inspect JSON directly in the terminal
 
 ## Architecture
 
@@ -97,8 +100,51 @@ cargo run -p lightning-cli --bin bolt11-decoder -- \
   decode 'paste-complete-BOLT11-payment_request-here'
 ```
 
-Use `Enter` to decode, arrow keys or `j`/`k` to scroll advanced details, `n` or
-`r` to start again, and `q`, `Esc`, or `Ctrl+C` to exit.
+Use a terminal at least 72 columns by 24 rows (100 × 32 recommended).
+
+| Key | Action |
+| --- | --- |
+| `Enter` | Decode the pasted invoice or confirm a dialog |
+| `F2` | Open the sample gallery; choose with arrow keys and press Enter |
+| `F3` | Import a QR image by entering its local file path |
+| `Tab` | Switch between invoice details and JSON after decoding |
+| `e` | Export JSON to a new file after decoding |
+| `↑` / `↓`, `j` / `k`, Page Up / Down | Scroll the result |
+| `Home` | Return to the top of the result |
+| `Ctrl+U` | Clear input or the dialog's file path |
+| `n` / `r` | Start another invoice after decoding |
+| `Esc` | Cancel a dialog; otherwise quit |
+| `Ctrl+C` | Quit from any screen |
+
+QR import reads the image from disk, so it works without terminal image-display
+support. Paste a plain path, a quoted path with spaces, or a path starting with
+`~/`. Bracketed paste is supported. Images are processed locally, even in remote
+mode; only the extracted invoice is sent to the API. Use one QR code per image,
+up to 10 MB and 4096 × 4096 pixels. No image preview or clipboard-image import
+is required. Export refuses to overwrite existing files.
+
+For a noninteractive QR-to-JSON command:
+
+```bash
+cargo run -p lightning-cli --bin bolt11-decoder -- \
+  decode --image frontend/public/samples/coffee.png
+```
+
+## Web input and exports
+
+Choose or drop a PNG, JPEG, or WebP image (up to 10 MB and 16 million pixels).
+The QR is read in the browser; review the extracted invoice and click Decode.
+The image is not uploaded to the API. A `lightning:` prefix is accepted in both
+clients. The result's **Export JSON** button downloads the decoded API response.
+
+The coffee and open-donation samples are expired public examples from the
+[BOLT11 specification](https://github.com/lightning/bolts/blob/master/11-payment-encoding.md#examples),
+intended for inspection only. Both clients use `frontend/data/samples.json`.
+Matching QR images are in `frontend/public/samples/`; regenerate them with:
+
+```bash
+cargo run -p lightning-cli --example sample_qr
+```
 
 ## HTTP API
 

@@ -1,4 +1,5 @@
 mod cli;
+mod files;
 mod remote;
 mod terminal_ui;
 
@@ -19,7 +20,12 @@ fn run() -> anyhow::Result<()> {
 
     match cli.command.unwrap_or(Command::Tui) {
         Command::Tui => terminal_ui::run(api_url),
-        Command::Decode { invoice } => {
+        Command::Decode { invoice, image } => {
+            let invoice = if let Some(path) = image {
+                files::read_qr(&path)?
+            } else {
+                files::normalize_invoice(invoice.as_deref().unwrap_or_default()).to_owned()
+            };
             let decoded = if let Some(api_url) = api_url {
                 remote::decode(&api_url, &invoice).context("remote invoice decoding failed")?
             } else {

@@ -1,4 +1,5 @@
 import type { ApiErrorResponse, DecodedInvoice } from "@/types/invoice";
+import { normalizeInvoice } from "@/lib/qr";
 
 const API_BASE_URL = (
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001"
@@ -26,7 +27,7 @@ export class ApiRequestError extends Error {
 }
 
 export async function decodeInvoice(invoice: string): Promise<DecodedInvoice> {
-  const normalizedInvoice = invoice.trim();
+  const normalizedInvoice = normalizeInvoice(invoice);
 
   if (!normalizedInvoice) {
     throw new ApiRequestError(ERROR_MESSAGES.EMPTY_INVOICE, "EMPTY_INVOICE", 400);
