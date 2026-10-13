@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 
+import { ValidationReport } from "@/components/validation-report";
 import type { DecodedInvoice } from "@/types/invoice";
 
 type Props = {
@@ -12,6 +13,16 @@ type Props = {
 export function InvoiceResult({ invoice, onReset }: Props) {
   const amount = formatAmount(invoice.amount_msat);
   const description = invoice.description?.trim() || "Not included";
+  function exportJson() {
+    const url = URL.createObjectURL(new Blob([JSON.stringify(invoice, null, 2) + "\n"], { type: "application/json" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `invoice-${invoice.payment_hash.slice(0, 12)}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
 
   return (
     <section className="result-card" aria-live="polite">
@@ -22,8 +33,9 @@ export function InvoiceResult({ invoice, onReset }: Props) {
         </div>
         <div className="result-header-actions">
           <span className={`status${invoice.expired ? " expired" : ""}`}>
-            {invoice.expired ? "Expired" : "Active"}
+            {invoice.expired ? "Expired" : "Not expired"}
           </span>
+          <button className="secondary-button" type="button" onClick={exportJson}>Export JSON</button>
           <button className="secondary-button" type="button" onClick={onReset}>
             Decode another invoice
           </button>
@@ -32,17 +44,19 @@ export function InvoiceResult({ invoice, onReset }: Props) {
 
       <div className="result-content">
         <div className="section-grid">
-          <ResultSection title="Summary">
-            <dl className="result-grid">
-              <ResultField label="Network" value={invoice.network} />
-              <ResultField
-                label="Amount"
-                value={amount.primary}
-                secondary={amount.secondary}
-              />
-              <ResultField label="Description" value={description} />
-            </dl>
-          </ResultSection>
+          <section className="invoice-summary" aria-labelledby="invoice-summary-title">
+            <div className="summary-heading">
+              <h3 id="invoice-summary-title">Invoice summary</h3>
+              <span className="network-badge">{invoice.network}</span>
+            </div>
+            <p className="summary-label">Requested amount</p>
+            <p className="summary-amount">{amount.primary}</p>
+            <p className="summary-secondary">{amount.secondary ?? "The payer chooses the amount"}</p>
+            <div className="summary-description">
+              <p className="summary-label">Description</p>
+              <p>{description}</p>
+            </div>
+          </section>
 
           <ResultSection title="Validity">
             <dl className="result-grid">
@@ -68,6 +82,8 @@ export function InvoiceResult({ invoice, onReset }: Props) {
             </dl>
           </ResultSection>
         </div>
+
+        {invoice.validation ? <ValidationReport report={invoice.validation} /> : <p className="hint">This API did not return a validation report. Update the API to enable detailed checks.</p>}
 
         <ResultSection title="Payment identifiers">
           <div className="identifier-list">
@@ -190,10 +206,10 @@ function formatTimestamp(timestamp: number) {
 }
 
 function formatDuration(seconds: number) {
-  if (seconds % 86_400 === 0) return `${seconds / 86_400} days`;
-  if (seconds % 3_600 === 0) return `${seconds / 3_600} hours`;
-  if (seconds % 60 === 0) return `${seconds / 60} minutes`;
-  return `${seconds} seconds`;
+  const [value, unit] = seconds % 86_400 === 0 ? [seconds / 86_400, "day"]
+    : seconds % 3_600 === 0 ? [seconds / 3_600, "hour"]
+    : seconds % 60 === 0 ? [seconds / 60, "minute"] : [seconds, "second"];
+  return `${value} ${unit}${value === 1 ? "" : "s"}`;
 }
 
 function formatRelativeExpiry(timestamp: number) {

@@ -11,6 +11,10 @@ pub struct Cli {
     #[arg(long, global = true, env = "LIGHTNING_API_URL")]
     pub api_url: Option<String>,
 
+    /// Warn if the invoice uses a different network.
+    #[arg(long, global = true)]
+    pub expected_network: Option<invoice_decoder::ExpectedNetwork>,
+
     #[command(subcommand)]
     pub command: Option<Command>,
 }
@@ -23,7 +27,11 @@ pub enum Command {
     /// Decode an invoice and print JSON.
     Decode {
         /// Complete BOLT11 invoice string.
-        invoice: String,
+        #[arg(required_unless_present = "image", conflicts_with = "image")]
+        invoice: Option<String>,
+        /// Read a BOLT11 QR code from a local PNG, JPEG, or WebP image.
+        #[arg(long)]
+        image: Option<String>,
     },
 }
 

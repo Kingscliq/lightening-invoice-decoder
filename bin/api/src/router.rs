@@ -235,4 +235,49 @@ mod tests {
                 .starts_with("text/html")
         );
     }
+    #[tokio::test]
+    async fn validation_report_handles_mismatch_and_invalid_expectations() {
+        let response = app()
+            .oneshot(
+                Request::get(format!(
+                    "/api/v1/invoices/decode/{VALID_EXPIRED_INVOICE}?expected_network=testnet"
+                ))
+                .body(Body::empty())
+                .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = json(response).await;
+        assert_eq!(body["validation"]["expected_network"], "testnet");
+        assert_eq!(body["validation"]["checks"][4]["status"], "warning");
+        let response = app()
+            .oneshot(
+                Request::get(format!(
+                    "/api/v1/invoices/decode/{VALID_EXPIRED_INVOICE}?expected_network=unknown"
+                ))
+                .body(Body::empty())
+                .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        assert_eq!(json(response).await["error"]["code"], "INVALID_NETWORK");
+    }
+
+    #[tokio::test]
+    async fn malformed_invoice_returns_diagnostic_report() {
+        let response = app()
+            .oneshot(
+                Request::get("/api/v1/invoices/decode/broken")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+        let body = json(response).await;
+        assert_eq!(body["validation"]["checks"][0]["status"], "failed");
+        assert_eq!(body["validation"]["checks"][1]["status"], "not_checked");
+    }
 }

@@ -1,3 +1,15 @@
+export type ExpectedNetwork = "mainnet" | "testnet" | "signet" | "regtest";
+export type ValidationReport = {
+  checked_at_unix: number;
+  expected_network: ExpectedNetwork | null;
+  checks: {
+    id: string;
+    label: string;
+    status: "passed" | "warning" | "failed" | "info" | "not_checked";
+    message: string;
+  }[];
+};
+
 export type RouteHintHop = {
   source_node_id: string;
   short_channel_id: number;
@@ -13,6 +25,7 @@ export type RouteHint = {
 };
 
 export type DecodedInvoice = {
+  validation?: ValidationReport;
   network: string;
   amount_msat: number | null;
   description: string | null;
@@ -30,6 +43,7 @@ export type DecodedInvoice = {
 };
 
 export type ApiErrorResponse = {
+  validation?: ValidationReport;
   error: {
     code: string;
     message: string;

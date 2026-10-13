@@ -13,6 +13,7 @@ pub async fn not_found() -> Response {
     (
         StatusCode::NOT_FOUND,
         Json(ApiErrorResponse {
+            validation: None,
             error: ApiErrorBody {
                 code: "NOT_FOUND",
                 message: "The requested endpoint does not exist.".to_owned(),

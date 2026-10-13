@@ -11,27 +11,44 @@ use crate::http::dto::{ApiErrorBody, ApiErrorResponse};
 pub enum ApiError {
     #[error(transparent)]
     Decode(#[from] DecodeError),
+    #[error("{0}")]
+    Validation(DecodeError, Box<invoice_decoder::ValidationReport>),
+    #[error("Expected network must be mainnet, testnet, signet, or regtest")]
+    InvalidNetwork,
 }
 
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
-        let (status, code) = match &self {
-            Self::Decode(DecodeError::EmptyInvoice) => (StatusCode::BAD_REQUEST, "EMPTY_INVOICE"),
-            Self::Decode(DecodeError::InvoiceTooLong { .. }) => {
-                (StatusCode::URI_TOO_LONG, "INVOICE_TOO_LONG")
-            }
-            Self::Decode(DecodeError::InvalidInvoice(_)) => {
-                (StatusCode::BAD_REQUEST, "INVALID_INVOICE")
-            }
-            Self::Decode(DecodeError::ExpiryOverflow) => {
-                (StatusCode::UNPROCESSABLE_ENTITY, "EXPIRY_OVERFLOW")
-            }
+        if matches!(self, Self::InvalidNetwork) {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(ApiErrorResponse {
+                    validation: None,
+                    error: ApiErrorBody {
+                        code: "INVALID_NETWORK",
+                        message: self.to_string(),
+                    },
+                }),
+            )
+                .into_response();
+        }
+        let (error, validation) = match self {
+            Self::Decode(error) => (error, None),
+            Self::Validation(error, report) => (error, Some((*report).into())),
+            Self::InvalidNetwork => unreachable!(),
+        };
+        let (status, code) = match &error {
+            DecodeError::EmptyInvoice => (StatusCode::BAD_REQUEST, "EMPTY_INVOICE"),
+            DecodeError::InvoiceTooLong { .. } => (StatusCode::URI_TOO_LONG, "INVOICE_TOO_LONG"),
+            DecodeError::InvalidInvoice(_) => (StatusCode::BAD_REQUEST, "INVALID_INVOICE"),
+            DecodeError::ExpiryOverflow => (StatusCode::UNPROCESSABLE_ENTITY, "EXPIRY_OVERFLOW"),
         };
 
         let body = ApiErrorResponse {
+            validation,
             error: ApiErrorBody {
                 code,
-                message: self.to_string(),
+                message: error.to_string(),
             },
         };
 

@@ -70,3 +70,26 @@ localhost:3001 -> container port 10000 -> Axum
 These commands build the production image and expose its API on
 `http://localhost:3001`. Docker is not required when running the API directly
 with Cargo.
+
+## Dependency download timeouts
+
+An error downloading from `index.crates.io` with `Timeout was reached` is a
+network failure during dependency resolution. Cargo resolves the shared
+workspace even when building only the API, so the error can mention a CLI
+dependency such as `ratatui`.
+
+The builder allows 120 seconds per HTTP request and five network retries.
+BuildKit cache mounts retain downloaded registry and Git dependencies across
+build attempts; they are not included in the final image. These changes help
+with slow or intermittent connections, but the first build still needs access
+to crates.io.
+
+Retry normally, preserving the cache:
+
+```bash
+docker build --progress=plain -t lightening-decoder-api .
+```
+
+If downloads still time out, check the network, VPN, or Docker Desktop proxy
+configuration. Do not change invoice code or remove `Cargo.lock` to work around
+a registry timeout.

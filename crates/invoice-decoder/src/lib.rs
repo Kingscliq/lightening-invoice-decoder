@@ -7,3 +7,6 @@ mod types;
 pub use decoder::{MAX_INVOICE_LENGTH, decode, parse_invoice};
 pub use error::{DecodeError, DecodeResult};
 pub use types::{DecodedInvoice, RouteHint, RouteHintHop};
+
+mod validation;
+pub use validation::{CheckStatus, ExpectedNetwork, ValidationCheck, ValidationReport, inspect};

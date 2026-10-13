@@ -4,12 +4,10 @@ use crate::{DecodeError, DecodeResult, DecodedInvoice, RouteHint, RouteHintHop};
 
 pub const MAX_INVOICE_LENGTH: usize = 8_192;
 
-/// Parses and validates a BOLT11 invoice string.
+/// Parse and validate a BOLT11 invoice.
 ///
 /// # Errors
-///
-/// Returns [`DecodeError`] when the input is empty, too long, or not a valid
-/// BOLT11 invoice.
+/// Returns an error for empty, oversized, or invalid invoices.
 pub fn parse_invoice(input: &str) -> DecodeResult<Bolt11Invoice> {
     let input = input.trim();
 
@@ -29,13 +27,15 @@ pub fn parse_invoice(input: &str) -> DecodeResult<Bolt11Invoice> {
         .map_err(|error| DecodeError::InvalidInvoice(error.to_string()))
 }
 
-/// Returns the fields decoded from a valid BOLT11 invoice.
+/// Extract invoice metadata and report validity and expiration.
 ///
 /// # Errors
-///
-/// Returns [`DecodeError`] when the invoice cannot be parsed or its expiry
-/// timestamp overflows.
+/// Returns an error for invalid input or an unrepresentable expiration time.
 pub fn decode(input: &str) -> DecodeResult<DecodedInvoice> {
+    crate::inspect(input, None).0
+}
+
+pub(crate) fn decode_fields(input: &str) -> DecodeResult<DecodedInvoice> {
     let invoice = parse_invoice(input)?;
     let (description, description_hash) = match invoice.description() {
         Bolt11InvoiceDescriptionRef::Direct(value) => (Some(value.to_string()), None),
@@ -89,6 +89,7 @@ pub fn decode(input: &str) -> DecodeResult<DecodedInvoice> {
     let expired = invoice.is_expired();
 
     Ok(DecodedInvoice {
+        validation: crate::ValidationReport::default(),
         network,
         amount_msat,
         description,

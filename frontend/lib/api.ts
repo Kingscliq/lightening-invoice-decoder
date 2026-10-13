@@ -1,10 +1,10 @@
-import type { ApiErrorResponse, DecodedInvoice } from "@/types/invoice";
+import type { ApiErrorResponse, DecodedInvoice, ExpectedNetwork, ValidationReport } from "@/types/invoice";
+import { normalizeInvoice } from "@/lib/qr";
 
 const API_BASE_URL = (
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:3001"
 ).replace(/\/$/, "");
 
-const BOLT11_PREFIX = /^ln(?:bc|tb|bcrt|tbs)/i;
 
 const ERROR_MESSAGES: Record<string, string> = {
   EMPTY_INVOICE: "Paste a BOLT11 invoice to continue.",
@@ -19,32 +19,25 @@ export class ApiRequestError extends Error {
     message: string,
     public readonly code: string,
     public readonly status: number,
+    public readonly validation?: ValidationReport,
   ) {
     super(message);
     this.name = "ApiRequestError";
   }
 }
 
-export async function decodeInvoice(invoice: string): Promise<DecodedInvoice> {
-  const normalizedInvoice = invoice.trim();
+export async function decodeInvoice(invoice: string, expectedNetwork?: ExpectedNetwork): Promise<DecodedInvoice> {
+  const normalizedInvoice = normalizeInvoice(invoice);
 
   if (!normalizedInvoice) {
     throw new ApiRequestError(ERROR_MESSAGES.EMPTY_INVOICE, "EMPTY_INVOICE", 400);
-  }
-
-  if (!BOLT11_PREFIX.test(normalizedInvoice)) {
-    throw new ApiRequestError(
-      "That doesn’t look like a BOLT11 invoice. Paste a Lightning invoice beginning with lnbc, lntb, lnbcrt, or lntbs.",
-      "INVALID_INVOICE",
-      400,
-    );
   }
 
   let response: Response;
 
   try {
     response = await fetch(
-      `${API_BASE_URL}/api/v1/invoices/decode/${encodeURIComponent(normalizedInvoice)}`,
+      `${API_BASE_URL}/api/v1/invoices/decode/${encodeURIComponent(normalizedInvoice)}${expectedNetwork ? `?expected_network=${expectedNetwork}` : ""}`,
       {
         headers: { Accept: "application/json" },
         cache: "no-store",
@@ -75,6 +68,7 @@ export async function decodeInvoice(invoice: string): Promise<DecodedInvoice> {
         `The decoder returned HTTP ${response.status}.`,
       code,
       response.status,
+      payload?.validation,
     );
   }
 

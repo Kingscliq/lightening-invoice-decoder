@@ -6,6 +6,11 @@ FROM rust:1.91-bookworm AS builder
 # All following paths in this stage are relative to /app.
 WORKDIR /app
 
+# Give slow registry connections more time before retrying. These settings
+# apply only to the builder stage, not the running API container.
+ENV CARGO_HTTP_TIMEOUT=120 \
+    CARGO_NET_RETRY=5
+
 # Cargo needs the workspace manifest, lockfile, and Rust source trees.
 # Copying only these paths also keeps frontend files out of this image.
 COPY Cargo.toml Cargo.lock ./
@@ -14,7 +19,11 @@ COPY crates ./crates
 
 # --locked guarantees that Cargo uses the exact dependency versions recorded
 # in Cargo.lock. --release creates an optimized executable.
-RUN cargo build --locked --release -p lightning-api
+# Keep downloaded crates across rebuilds and failed attempts. BuildKit caches
+# are not copied into the runtime image.
+RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
+    --mount=type=cache,target=/usr/local/cargo/git,sharing=locked \
+    cargo build --locked --release -p lightning-api
 
 # Stage 2 is the runtime environment. It is smaller because it does not contain
 # the Rust compiler, Cargo, or the source code.
