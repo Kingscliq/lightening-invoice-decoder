@@ -123,6 +123,16 @@ export function InvoiceDecoder() {
         required
       />
 
+      {error ? (
+        <div className="invoice-error-banner" role="alert" aria-atomic="true">
+          <span className="invoice-error-icon" aria-hidden="true">!</span>
+          <div>
+            <strong>Unable to process invoice</strong>
+            <p>{error}</p>
+          </div>
+        </div>
+      ) : null}
+
       <div className="actions">
         <p className="hint">The invoice is decoded by the Rust API.</p>
         <button type="submit" disabled={busy || !invoice.trim()}>
@@ -142,11 +152,6 @@ export function InvoiceDecoder() {
       </div>
       {notice ? <p className="import-notice" role="status">{notice}</p> : null}
 
-      {error ? (
-        <p className="error" role="alert">
-          {error}
-        </p>
-      ) : null}
       {validation ? <ValidationReport report={validation} /> : null}
     </form>
   );

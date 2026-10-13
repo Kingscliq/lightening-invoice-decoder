@@ -43,19 +43,20 @@ export function InvoiceResult({ invoice, onReset }: Props) {
       </header>
 
       <div className="result-content">
-        {invoice.validation ? <ValidationReport report={invoice.validation} /> : <p className="hint">This API did not return a validation report. Update the API to enable detailed checks.</p>}
         <div className="section-grid">
-          <ResultSection title="Summary">
-            <dl className="result-grid">
-              <ResultField label="Network" value={invoice.network} />
-              <ResultField
-                label="Amount"
-                value={amount.primary}
-                secondary={amount.secondary}
-              />
-              <ResultField label="Description" value={description} />
-            </dl>
-          </ResultSection>
+          <section className="invoice-summary" aria-labelledby="invoice-summary-title">
+            <div className="summary-heading">
+              <h3 id="invoice-summary-title">Invoice summary</h3>
+              <span className="network-badge">{invoice.network}</span>
+            </div>
+            <p className="summary-label">Requested amount</p>
+            <p className="summary-amount">{amount.primary}</p>
+            <p className="summary-secondary">{amount.secondary ?? "The payer chooses the amount"}</p>
+            <div className="summary-description">
+              <p className="summary-label">Description</p>
+              <p>{description}</p>
+            </div>
+          </section>
 
           <ResultSection title="Validity">
             <dl className="result-grid">
@@ -81,6 +82,8 @@ export function InvoiceResult({ invoice, onReset }: Props) {
             </dl>
           </ResultSection>
         </div>
+
+        {invoice.validation ? <ValidationReport report={invoice.validation} /> : <p className="hint">This API did not return a validation report. Update the API to enable detailed checks.</p>}
 
         <ResultSection title="Payment identifiers">
           <div className="identifier-list">
