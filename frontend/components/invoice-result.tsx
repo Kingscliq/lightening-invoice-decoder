@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 
+import { ValidationReport } from "@/components/validation-report";
 import type { DecodedInvoice } from "@/types/invoice";
 
 type Props = {
@@ -42,6 +43,7 @@ export function InvoiceResult({ invoice, onReset }: Props) {
       </header>
 
       <div className="result-content">
+        {invoice.validation ? <ValidationReport report={invoice.validation} /> : <p className="hint">This API did not return a validation report. Update the API to enable detailed checks.</p>}
         <div className="section-grid">
           <ResultSection title="Summary">
             <dl className="result-grid">

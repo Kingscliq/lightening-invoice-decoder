@@ -432,3 +432,23 @@ button:focus-visible, summary:focus-visible { outline: 3px solid var(--accent-st
   .qr-dropzone button { width: 100%; }
   .sample-grid { grid-template-columns: 1fr; }
 }
+
+.network-choice { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; font-size: .88rem; font-weight: 600; }
+.network-choice select { font: inherit; padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--text); }
+.network-choice select:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.validation-report { margin: 20px 0; border: 1px solid var(--border); border-radius: 14px; overflow: hidden; background: var(--surface); }
+.result-content > .validation-report:first-child { margin-top: 0; }
+.validation-heading { padding: 18px; background: var(--surface-raised); display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.validation-heading h3 { margin: 0; font-size: 1.05rem; }
+.validation-checks { list-style: none; padding: 0; margin: 0; }
+.validation-check { display: flex; align-items: flex-start; gap: 14px; padding: 16px 18px; border-top: 1px solid var(--border); }
+.validation-check > div { flex: 1; min-width: 0; }
+.check-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; font-size: .87rem; }
+.check-status { font-size: .74rem; font-weight: 700; }
+.check-symbol { display: grid; place-items: center; flex-shrink: 0; width: 25px; height: 25px; border-radius: 50%; background: var(--surface-raised); font-weight: 700; }
+.validation-check p { color: var(--muted); font-size: .83rem; line-height: 1.6; margin: 6px 0 0; overflow-wrap: anywhere; }
+.check-passed .check-status, .check-passed .check-symbol { color: var(--success); }
+.check-warning .check-status, .check-warning .check-symbol { color: #995800; }
+.check-failed .check-status, .check-failed .check-symbol { color: var(--danger); }
+.check-info .check-status, .check-not_checked .check-status { color: var(--muted); }
+.validation-scope { border-top: 1px solid var(--border); padding: 14px 18px; margin: 0; font-size: .76rem; color: var(--muted); line-height: 1.6; background: var(--surface-raised); }

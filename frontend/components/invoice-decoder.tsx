@@ -3,12 +3,15 @@
 import { FormEvent, useRef, useState } from "react";
 
 import { InvoiceResult } from "@/components/invoice-result";
-import { decodeInvoice } from "@/lib/api";
-import type { DecodedInvoice } from "@/types/invoice";
+import { ApiRequestError, decodeInvoice } from "@/lib/api";
+import type { DecodedInvoice, ExpectedNetwork, ValidationReport as Report } from "@/types/invoice";
+import { ValidationReport } from "@/components/validation-report";
 import samples from "@/data/samples.json";
 import { readQrImage } from "@/lib/qr";
 
 export function InvoiceDecoder() {
+  const [expectedNetwork, setExpectedNetwork] = useState<ExpectedNetwork | "">("");
+  const [validation, setValidation] = useState<Report | null>(null);
   const [invoice, setInvoice] = useState("");
   const [result, setResult] = useState<DecodedInvoice | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -24,7 +27,7 @@ export function InvoiceDecoder() {
     if (busyRef.current) return;
     busyRef.current = true;
     setIsReading(true);
-    setError(null);
+    setError(null); setValidation(null);
     setNotice("");
     try {
       setInvoice(await readQrImage(file));
@@ -41,13 +44,14 @@ export function InvoiceDecoder() {
     event.preventDefault();
     if (busyRef.current) return;
     busyRef.current = true;
-    setError(null);
+    setError(null); setValidation(null);
     setResult(null);
     setIsLoading(true);
 
     try {
-      setResult(await decodeInvoice(invoice));
+      setResult(await decodeInvoice(invoice, expectedNetwork || undefined));
     } catch (caught) {
+      if (caught instanceof ApiRequestError) setValidation(caught.validation ?? null);
       setError(
         caught instanceof Error
           ? caught.message
@@ -62,7 +66,7 @@ export function InvoiceDecoder() {
   function resetDecoder() {
     setInvoice("");
     setResult(null);
-    setError(null);
+    setError(null); setValidation(null);
     setNotice("");
   }
 
@@ -94,6 +98,14 @@ export function InvoiceDecoder() {
             if (file) void importImage(file);
           }} />
       </div>
+      <div className="network-choice">
+        <label htmlFor="expected-network">Expected network <span className="hint">(optional)</span></label>
+        <select id="expected-network" value={expectedNetwork} disabled={busy}
+          onChange={(event) => { setExpectedNetwork(event.target.value as ExpectedNetwork | ""); setValidation(null); }}>
+          <option value="">Detect only</option><option value="mainnet">Mainnet</option>
+          <option value="testnet">Testnet</option><option value="signet">Signet</option><option value="regtest">Regtest</option>
+        </select>
+      </div>
       <label className="field-label" htmlFor="invoice">
         BOLT11 invoice
       </label>
@@ -102,7 +114,7 @@ export function InvoiceDecoder() {
         name="invoice"
         placeholder="lnbc... or lnbcrt..."
         value={invoice}
-        onChange={(event) => { setInvoice(event.target.value); setNotice(""); setError(null); }}
+        onChange={(event) => { setInvoice(event.target.value); setNotice(""); setError(null); setValidation(null); }}
         disabled={busy}
         maxLength={8202}
         spellCheck={false}
@@ -122,7 +134,7 @@ export function InvoiceDecoder() {
         <p className="field-label">Just exploring? Try a sample</p>
         <div className="sample-grid">{samples.map((sample) => (
           <button key={sample.label} className="sample-button" type="button" disabled={busy}
-            onClick={() => { setInvoice(sample.invoice); setError(null); setNotice(`${sample.label} loaded. This is an expired public demo invoice.`); }}>
+            onClick={() => { setInvoice(sample.invoice); setError(null); setValidation(null); setNotice(`${sample.label} loaded. This is an expired public demo invoice.`); }}>
             <strong>{sample.label} <span aria-hidden="true">↗</span></strong><span>{sample.detail}</span>
           </button>
         ))}</div>
@@ -135,6 +147,7 @@ export function InvoiceDecoder() {
           {error}
         </p>
       ) : null}
+      {validation ? <ValidationReport report={validation} /> : null}
     </form>
   );
 }

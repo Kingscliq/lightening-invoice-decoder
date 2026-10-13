@@ -9,6 +9,8 @@ pub struct HealthResponse {
 
 #[derive(Debug, Serialize, ToSchema)]
 pub struct ApiErrorResponse {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub validation: Option<ValidationReportResponse>,
     pub error: ApiErrorBody,
 }
 
@@ -20,6 +22,7 @@ pub struct ApiErrorBody {
 
 #[derive(Debug, Serialize, ToSchema)]
 pub struct DecodedInvoiceResponse {
+    pub validation: ValidationReportResponse,
     pub network: String,
     pub amount_msat: Option<u64>,
     pub description: Option<String>,
@@ -55,6 +58,7 @@ pub struct RouteHintHopResponse {
 impl From<DecodedInvoice> for DecodedInvoiceResponse {
     fn from(invoice: DecodedInvoice) -> Self {
         Self {
+            validation: invoice.validation.into(),
             network: invoice.network,
             amount_msat: invoice.amount_msat,
             description: invoice.description,
@@ -99,6 +103,49 @@ impl From<RouteHintHop> for RouteHintHopResponse {
             cltv_expiry_delta: hop.cltv_expiry_delta,
             htlc_minimum_msat: hop.htlc_minimum_msat,
             htlc_maximum_msat: hop.htlc_maximum_msat,
+        }
+    }
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct ValidationReportResponse {
+    pub checked_at_unix: u64,
+    pub expected_network: Option<String>,
+    pub checks: Vec<ValidationCheckResponse>,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct ValidationCheckResponse {
+    pub id: String,
+    pub label: String,
+    pub status: String,
+    pub message: String,
+}
+
+impl From<invoice_decoder::ValidationReport> for ValidationReportResponse {
+    fn from(report: invoice_decoder::ValidationReport) -> Self {
+        Self {
+            checked_at_unix: report.checked_at_unix,
+            expected_network: report
+                .expected_network
+                .map(|network| network.as_str().to_owned()),
+            checks: report
+                .checks
+                .into_iter()
+                .map(|check| ValidationCheckResponse {
+                    id: check.id,
+                    label: check.label,
+                    message: check.message,
+                    status: match check.status {
+                        invoice_decoder::CheckStatus::Passed => "passed",
+                        invoice_decoder::CheckStatus::Warning => "warning",
+                        invoice_decoder::CheckStatus::Failed => "failed",
+                        invoice_decoder::CheckStatus::Info => "info",
+                        invoice_decoder::CheckStatus::NotChecked => "not_checked",
+                    }
+                    .to_owned(),
+                })
+                .collect(),
         }
     }
 }

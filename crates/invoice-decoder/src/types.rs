@@ -2,6 +2,8 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct DecodedInvoice {
+    #[serde(default)]
+    pub validation: crate::ValidationReport,
     pub network: String,
     pub amount_msat: Option<u64>,
     pub description: Option<String>,

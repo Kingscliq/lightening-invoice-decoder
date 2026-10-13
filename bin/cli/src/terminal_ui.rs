@@ -12,7 +12,7 @@ use crossterm::{
     },
     execute,
 };
-use invoice_decoder::DecodedInvoice;
+use invoice_decoder::{CheckStatus, DecodedInvoice, ExpectedNetwork, ValidationReport};
 
 use ratatui::{
     DefaultTerminal, Frame,
@@ -26,7 +26,7 @@ use time::{OffsetDateTime, format_description};
 const DEMO_DELAY_ENV: &str = "LIGHTNING_TUI_DEMO_DELAY_MS";
 const SPINNER_FRAMES: [&str; 8] = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧"];
 
-type DecodeMessage = Result<DecodedInvoice, String>;
+type DecodeMessage = (Result<DecodedInvoice, String>, Option<ValidationReport>);
 
 #[derive(Clone, Default)]
 enum DecodeSource {
@@ -53,7 +53,7 @@ enum DecodeStatus {
     #[default]
     Idle,
     Decoding,
-    Success(DecodedInvoice),
+    Success(Box<DecodedInvoice>),
     Failed(String),
 }
 
@@ -77,6 +77,9 @@ struct App {
     selected_sample: usize,
     notice: String,
     json_view: bool,
+    report_view: bool,
+    report: Option<ValidationReport>,
+    expected_network: Option<ExpectedNetwork>,
 }
 
 impl App {
@@ -85,6 +88,17 @@ impl App {
             source: DecodeSource::from_api_url(api_url),
             ..Self::default()
         }
+    }
+
+    fn cycle_network(&mut self) {
+        self.expected_network = match self.expected_network {
+            None => Some(ExpectedNetwork::Mainnet),
+            Some(ExpectedNetwork::Mainnet) => Some(ExpectedNetwork::Testnet),
+            Some(ExpectedNetwork::Testnet) => Some(ExpectedNetwork::Signet),
+            Some(ExpectedNetwork::Signet) => Some(ExpectedNetwork::Regtest),
+            Some(ExpectedNetwork::Regtest) => None,
+        };
+        self.clear_result();
     }
 
     fn is_decoding(&self) -> bool {
@@ -110,29 +124,43 @@ impl App {
         let (sender, receiver) = mpsc::channel();
         self.decode_receiver = Some(receiver);
         self.status = DecodeStatus::Decoding;
+        self.report = None;
+        self.report_view = false;
         self.notice.clear();
         self.dialog = None;
         self.result_scroll = 0;
         let demo_delay = demo_decode_delay();
         let source = self.source.clone();
+        let expected = self.expected_network;
 
         thread::spawn(move || {
             thread::sleep(demo_delay);
-            let result = (|| {
-                let invoice = if let Some(path) = image_path {
-                    crate::files::read_qr(&path).map_err(|error| format!("{error:#}"))?
-                } else {
-                    invoice
-                };
-                match source {
-                    DecodeSource::Local => {
-                        invoice_decoder::decode(&invoice).map_err(|error| error.to_string())
-                    }
-                    DecodeSource::Remote(api_url) => {
-                        crate::remote::decode(&api_url, &invoice).map_err(|error| error.to_string())
-                    }
+            let input = image_path.map_or_else(
+                || Ok(invoice),
+                |path| crate::files::read_qr(&path).map_err(|error| format!("{error:#}")),
+            );
+            let result = match input {
+                Err(error) => (Err(error), None),
+                Ok(invoice) => {
+                    let (local, report) = invoice_decoder::inspect(&invoice, expected);
+                    let decoded = match source {
+                        DecodeSource::Local => local.map_err(|error| error.to_string()),
+                        DecodeSource::Remote(api_url) => {
+                            if let Err(error) = local {
+                                Err(error.to_string())
+                            } else {
+                                crate::remote::decode(&api_url, &invoice)
+                                    .map(|mut decoded| {
+                                        decoded.validation = report.clone();
+                                        decoded
+                                    })
+                                    .map_err(|error| error.to_string())
+                            }
+                        }
+                    };
+                    (decoded, Some(report))
                 }
-            })();
+            };
             let _ = sender.send(result);
         });
     }
@@ -143,11 +171,14 @@ impl App {
         };
 
         match receiver.try_recv() {
-            Ok(Ok(invoice)) => {
-                self.status = DecodeStatus::Success(invoice);
+            Ok((Ok(invoice), report)) => {
+                self.report = report;
+                self.status = DecodeStatus::Success(Box::new(invoice));
                 self.decode_receiver = None;
             }
-            Ok(Err(error)) => {
+            Ok((Err(error), report)) => {
+                self.report_view = report.is_some();
+                self.report = report;
                 self.status = DecodeStatus::Failed(error);
                 self.decode_receiver = None;
             }
@@ -160,6 +191,8 @@ impl App {
     }
 
     fn clear_result(&mut self) {
+        self.report = None;
+        self.report_view = false;
         self.status = DecodeStatus::Idle;
     }
 
@@ -173,6 +206,8 @@ impl App {
         self.decode_receiver = None;
         self.result_scroll = 0;
         self.json_view = false;
+        self.report_view = false;
+        self.report = None;
         self.notice.clear();
         self.dialog = None;
     }
@@ -196,13 +231,17 @@ fn demo_decode_delay() -> Duration {
         .map_or(Duration::ZERO, Duration::from_millis)
 }
 
-pub fn run(api_url: Option<String>) -> anyhow::Result<()> {
+pub fn run(
+    api_url: Option<String>,
+    expected_network: Option<ExpectedNetwork>,
+) -> anyhow::Result<()> {
     let mut terminal = ratatui::try_init().context("failed to initialize the terminal")?;
     if let Err(error) = execute!(std::io::stdout(), EnableBracketedPaste) {
         ratatui::restore();
         return Err(error.into());
     }
     let mut app = App::new(api_url);
+    app.expected_network = expected_network;
     let result = run_event_loop(&mut terminal, &mut app);
     let _ = execute!(std::io::stdout(), DisableBracketedPaste);
     ratatui::try_restore().context("failed to restore the terminal")?;
@@ -283,7 +322,7 @@ fn handle_dialog_key(app: &mut App, key: KeyEvent, dialog: Dialog) {
                 app.invoice_input
                     .clone_from(&samples[app.selected_sample].invoice);
                 app.dialog = None;
-                app.status = DecodeStatus::Idle;
+                app.clear_result();
                 "Public demo invoice loaded · expired · press Enter to inspect"
                     .clone_into(&mut app.notice);
             }
@@ -324,6 +363,24 @@ fn handle_dialog_key(app: &mut App, key: KeyEvent, dialog: Dialog) {
     }
 }
 
+fn handle_report_key(app: &mut App, key: KeyEvent) -> bool {
+    match key.code {
+        KeyCode::Esc | KeyCode::Char('v') => {
+            app.report_view = false;
+            app.result_scroll = 0;
+        }
+        KeyCode::Down | KeyCode::Char('j') => app.scroll_result_down(1),
+        KeyCode::Up | KeyCode::Char('k') => app.scroll_result_up(1),
+        KeyCode::PageDown => app.scroll_result_down(5),
+        KeyCode::PageUp => app.scroll_result_up(5),
+        KeyCode::Home => app.result_scroll = 0,
+        KeyCode::Char('n') => app.reset(),
+        KeyCode::Char('q') => return true,
+        _ => {}
+    }
+    false
+}
+
 fn handle_key(app: &mut App, key: KeyEvent) -> bool {
     if key.code == KeyCode::Char('c') && key.modifiers.contains(KeyModifiers::CONTROL) {
         return true;
@@ -332,8 +389,20 @@ fn handle_key(app: &mut App, key: KeyEvent) -> bool {
         handle_dialog_key(app, key, dialog);
         return false;
     }
+    if app.report_view {
+        return handle_report_key(app, key);
+    }
     if !app.is_decoding() {
         match key.code {
+            KeyCode::F(4) if !app.has_decoded_invoice() => {
+                app.cycle_network();
+                return false;
+            }
+            KeyCode::Char('v') if app.report.is_some() => {
+                app.report_view = true;
+                app.result_scroll = 0;
+                return false;
+            }
             KeyCode::F(2) => {
                 open_dialog(app, Dialog::Samples);
                 return false;
@@ -419,6 +488,10 @@ fn draw(frame: &mut Frame, app: &mut App) {
             .wrap(Wrap { trim: false }).block(panel_block(" Resize terminal ")), frame.area());
         return;
     }
+    if app.report_view {
+        draw_report(frame, app);
+        return;
+    }
     if let DecodeStatus::Success(invoice) = &app.status {
         let (scroll, maximum) = draw_result(frame, app, invoice);
         app.result_scroll = scroll;
@@ -429,6 +502,70 @@ fn draw(frame: &mut Frame, app: &mut App) {
     if let Some(dialog) = app.dialog {
         draw_dialog(frame, app, dialog);
     }
+}
+
+fn draw_report(frame: &mut Frame, app: &mut App) {
+    let [heading, body, footer] = Layout::vertical([
+        Constraint::Length(3),
+        Constraint::Min(8),
+        Constraint::Length(3),
+    ])
+    .areas(frame.area());
+    let title = match &app.status {
+        DecodeStatus::Failed(error) => format!("Decode failed: {error}"),
+        _ => "Validation report".to_owned(),
+    };
+    frame.render_widget(
+        Paragraph::new(title)
+            .wrap(Wrap { trim: false })
+            .style(Style::default().fg(Color::Yellow))
+            .block(panel_block(" Invoice checks ")),
+        heading,
+    );
+    let mut lines = Vec::new();
+    if let Some(report) = &app.report {
+        lines.push(Line::styled(
+            format!(
+                "Checked {} · Expected: {}",
+                format_unix_timestamp(report.checked_at_unix),
+                report
+                    .expected_network
+                    .map_or("Detect only", ExpectedNetwork::as_str)
+            ),
+            Style::default().fg(Color::DarkGray),
+        ));
+        for check in &report.checks {
+            let (label, color) = match check.status {
+                CheckStatus::Passed => ("PASS", Color::Green),
+                CheckStatus::Warning => ("WARNING", Color::Yellow),
+                CheckStatus::Failed => ("FAIL", Color::Red),
+                CheckStatus::Info => ("INFO", Color::Cyan),
+                CheckStatus::NotChecked => ("NOT CHECKED", Color::DarkGray),
+            };
+            lines.push(Line::from(""));
+            lines.push(Line::styled(
+                format!("[{label}] {}", check.label),
+                Style::default().fg(color).add_modifier(Modifier::BOLD),
+            ));
+            lines.push(Line::from(check.message.as_str()));
+        }
+    }
+    lines.push(Line::from(""));
+    lines.push(Line::styled(
+        "These checks do not establish payment status, recipient identity, or route availability.",
+        Style::default().fg(Color::DarkGray),
+    ));
+    let panel = Paragraph::new(lines)
+        .wrap(Wrap { trim: false })
+        .block(panel_block(" Validation report "));
+    app.max_scroll = scroll_limit(&panel, body);
+    app.result_scroll = app.result_scroll.min(app.max_scroll);
+    frame.render_widget(panel.scroll((app.result_scroll, 0)), body);
+    frame.render_widget(
+        Paragraph::new("↑/↓ Scroll · v/Esc Back · n New invoice · q Quit")
+            .alignment(Alignment::Center),
+        footer,
+    );
 }
 
 fn input_header(app: &App) -> Paragraph<'_> {
@@ -445,8 +582,10 @@ fn input_header(app: &App) -> Paragraph<'_> {
         ),
         Line::styled(
             format!(
-                "{} · BOLT11 · no payments, just clarity",
-                app.source.label()
+                "{} · Expected network: {} · F4 to change",
+                app.source.label(),
+                app.expected_network
+                    .map_or("Detect only", ExpectedNetwork::as_str)
             ),
             Style::default().fg(Color::DarkGray),
         ),
@@ -559,7 +698,7 @@ fn draw_input(frame: &mut Frame, app: &App) {
     draw_input_actions(frame, actions_area);
 
     let footer =
-        Paragraph::new("Enter Decode  •  F2 Samples  •  F3 QR image  •  Ctrl+U Clear  •  Esc Quit")
+        Paragraph::new("Enter Decode · F2 Samples · F3 QR · F4 Network · Ctrl+U Clear · Esc Quit")
             .alignment(Alignment::Center)
             .style(Style::default().fg(Color::DarkGray));
 
@@ -626,9 +765,7 @@ fn draw_result(frame: &mut Frame, app: &App, invoice: &DecodedInvoice) -> (u16, 
 
     let footer = Paragraph::new(vec![
         Line::styled(app.notice.as_str(), Style::default().fg(Color::Cyan)),
-        Line::from(
-            "Tab JSON/Details · e Export · ↑/↓ Scroll · F2 Samples · F3 QR · n New · q Quit",
-        ),
+        Line::from("v Validation · Tab JSON/Details · e Export · ↑/↓ Scroll · n New · q Quit"),
     ])
     .alignment(Alignment::Center)
     .style(Style::default().fg(Color::DarkGray));
@@ -977,6 +1114,7 @@ mod tests {
 
     fn sample_invoice() -> DecodedInvoice {
         DecodedInvoice {
+            validation: ValidationReport::default(),
             network: "regtest".to_owned(),
             amount_msat: Some(1_000),
             description: Some("Test payment".to_owned()),
@@ -1033,7 +1171,7 @@ mod tests {
         let (sender, receiver) = mpsc::channel();
         app.decode_receiver = Some(receiver);
         sender
-            .send(Ok(sample_invoice()))
+            .send((Ok(sample_invoice()), None))
             .expect("the test receiver should remain connected");
 
         app.receive_decode_result();
@@ -1047,7 +1185,7 @@ mod tests {
         let mut app = App {
             invoice_input: "invoice".to_owned(),
             max_scroll: 10,
-            status: DecodeStatus::Success(sample_invoice()),
+            status: DecodeStatus::Success(Box::new(sample_invoice())),
             ..App::default()
         };
 
@@ -1097,7 +1235,7 @@ mod tests {
     #[test]
     fn json_view_and_export_dialog_preserve_results() {
         let mut app = App {
-            status: DecodeStatus::Success(sample_invoice()),
+            status: DecodeStatus::Success(Box::new(sample_invoice())),
             ..App::default()
         };
         handle_key(&mut app, KeyEvent::new(KeyCode::Tab, KeyModifiers::NONE));
@@ -1124,7 +1262,7 @@ mod tests {
         terminal.draw(|frame| draw(frame, &mut app)).unwrap();
         assert!(format!("{:?}", terminal.backend().buffer()).contains("Open donation"));
         app.dialog = None;
-        app.status = DecodeStatus::Success(sample_invoice());
+        app.status = DecodeStatus::Success(Box::new(sample_invoice()));
         terminal.draw(|frame| draw(frame, &mut app)).unwrap();
         assert!(format!("{:?}", terminal.backend().buffer()).contains("Payment identifiers"));
         app.json_view = true;
@@ -1146,5 +1284,31 @@ mod tests {
 
         assert!(matches!(app.source, DecodeSource::Remote(_)));
         assert_eq!(app.source.label(), "Remote API");
+    }
+    #[test]
+    fn selects_network_and_renders_validation_after_failure() {
+        use ratatui::{Terminal, backend::TestBackend};
+        let mut app = App::default();
+        handle_key(&mut app, KeyEvent::new(KeyCode::F(4), KeyModifiers::NONE));
+        assert_eq!(app.expected_network, Some(ExpectedNetwork::Mainnet));
+        let (_, report) = invoice_decoder::inspect("invalid", app.expected_network);
+        let (sender, receiver) = mpsc::channel();
+        app.decode_receiver = Some(receiver);
+        sender
+            .send((Err("Invalid invoice".to_owned()), Some(report)))
+            .unwrap();
+        app.receive_decode_result();
+        assert!(app.report_view);
+        let mut terminal = Terminal::new(TestBackend::new(100, 32)).unwrap();
+        terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+        let screen = format!("{:?}", terminal.backend().buffer());
+        assert!(screen.contains("[FAIL] Invoice format"));
+        assert!(screen.contains("[NOT CHECKED] Signature"));
+        assert!(!handle_key(
+            &mut app,
+            KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE)
+        ));
+        assert!(!app.report_view);
+        assert!(app.report.is_some());
     }
 }

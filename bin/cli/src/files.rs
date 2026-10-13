@@ -69,9 +69,17 @@ pub fn read_qr(path: &str) -> anyhow::Result<String> {
         .context("No QR code found. Try a sharper image with the entire code visible")?;
     let (_, content) = grid.decode().context("The QR code could not be read")?;
     let invoice = normalize_invoice(&content);
-    // Parsing here also prevents URLs or other QR content being sent to a remote API.
-    invoice_decoder::parse_invoice(invoice)
-        .context("QR code does not contain a valid BOLT11 invoice")?;
+    // Leave checksum and signature validation to the inspector so malformed
+    // invoices also get a diagnostic report. Never treat arbitrary URLs as invoices.
+    let lower = invoice.to_ascii_lowercase();
+    let is_invoice = ["lnbcrt", "lntbs", "lnbc", "lntb"].iter().any(|prefix| {
+        lower
+            .strip_prefix(prefix)
+            .is_some_and(|rest| rest.as_bytes().first().is_some_and(u8::is_ascii_digit))
+    });
+    if !is_invoice || invoice.len() > invoice_decoder::MAX_INVOICE_LENGTH {
+        bail!("QR code does not contain a supported BOLT11 invoice");
+    }
     Ok(invoice.to_owned())
 }
 

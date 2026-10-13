@@ -27,9 +27,11 @@ Returns `200 OK` when the process is ready to accept requests.
 ## Decode a BOLT11 invoice
 
 ```http
-GET /api/v1/invoices/decode/{invoice}
+GET /api/v1/invoices/decode/{invoice}?expected_network=mainnet
 Accept: application/json
 ```
+
+`expected_network` is optional and accepts `mainnet`, `testnet`, `signet`, or `regtest`. Omit it to detect the network without checking a match. An unsupported value returns `400` with `INVALID_NETWORK`.
 
 `invoice` is the complete URL-encoded BOLT11 string, not a payment hash or database ID. The handler passes it to the shared decoder library and returns the decoded fields as JSON.
 
@@ -40,6 +42,8 @@ curl "http://localhost:3001/api/v1/invoices/decode/$(printf %s 'lnbcrt...' | jq 
 ```
 
 Successful responses contain the decoded network, amount, description, timestamps, payment hash, payee key, route hints, and validation status. Unix timestamps are expressed in seconds, and amounts are expressed in millisatoshis.
+
+Decoded fields (the additional `validation` object is described below):
 
 ```json
 {
@@ -78,3 +82,26 @@ comma-separated origins configured by `ALLOWED_ORIGINS`, which defaults to
 `http://localhost:3000`.
 
 Request tracing records the HTTP method and response information but deliberately omits the URI because the GET path contains the complete invoice. Clients and upstream proxies should also avoid storing or logging invoice URLs unless users explicitly consent.
+
+## Validation report
+
+Successful responses include a `validation` object containing:
+
+- `checked_at_unix`: UTC Unix seconds when the checks ran.
+- `expected_network`: the requested network, or `null` for detection only.
+- `checks`: ordered format, signature, requirements, expiry, network, and amount checks.
+  Each check has a stable `id`, a human-readable `label`, a `status`, and a `message`.
+
+Statuses are `passed`, `warning`, `failed`, `info`, and `not_checked`. Expiry and
+network mismatch warnings still return `200` and the decoded fields. A missing
+amount is informational: the payer chooses the amount. No overall “safe to pay”
+claim is made, and wallet feature compatibility is not evaluated.
+
+Decode errors retain the existing HTTP status and `error` envelope, and also
+include a top-level `validation` object. Invalid encoding marks `format` failed
+and downstream checks `not_checked`. Where raw parsing succeeds, the report
+separates signature failure from required-field/semantic failure. Invalid query
+parameters and routing errors do not include an invoice validation report.
+
+The expiry check is a snapshot at `checked_at_unix`, not a live timer. It does
+not establish whether the invoice has been paid or whether a route exists.

@@ -30,6 +30,7 @@ client, and a reusable Rust decoder library.
 - Import BOLT11 QR images in the browser or terminal (PNG, JPEG, WebP)
 - Explore shared, clearly labeled sample invoices
 - Export decoded results as JSON; inspect JSON directly in the terminal
+- Read detailed validation checks for format, signature, required fields, expiry, network, and amount
 
 ## Architecture
 
@@ -107,6 +108,8 @@ Use a terminal at least 72 columns by 24 rows (100 × 32 recommended).
 | `Enter` | Decode the pasted invoice or confirm a dialog |
 | `F2` | Open the sample gallery; choose with arrow keys and press Enter |
 | `F3` | Import a QR image by entering its local file path |
+| `F4` | Cycle expected network before decoding (default: detect only) |
+| `v` | Open or close the validation report after decoding |
 | `Tab` | Switch between invoice details and JSON after decoding |
 | `e` | Export JSON to a new file after decoding |
 | `↑` / `↓`, `j` / `k`, Page Up / Down | Scroll the result |
@@ -144,6 +147,31 @@ Matching QR images are in `frontend/public/samples/`; regenerate them with:
 
 ```bash
 cargo run -p lightning-cli --example sample_qr
+```
+
+## Validation reports
+
+Select an optional **Expected network** in the web app, or press `F4` before
+terminal decoding. Use `v` on the terminal result to read the report. Failed
+terminal decoding opens the diagnostic report automatically when available;
+`Esc` returns to the input. Exported JSON includes the report.
+
+Checks use `passed`, `warning`, `failed`, `info`, or `not_checked` statuses.
+Expired invoices and network mismatches produce warnings without hiding invoice
+details. An invalid encoding leaves dependent checks unperformed. Signature
+failures and missing required fields are distinguished when the encoding can be
+parsed. The report records the time it was checked; expiry status is a snapshot.
+Wallet feature compatibility, settlement status, recipient identity, and route
+availability are not established by these checks.
+
+The CLI accepts `--expected-network mainnet|testnet|signet|regtest` in local and
+remote modes. Its shared Rust inspector validates input locally, including in
+remote mode. Invalid CLI input prints a JSON diagnostic report and exits nonzero.
+For example:
+
+```bash
+cargo run -p lightning-cli --bin bolt11-decoder -- \
+  --expected-network testnet decode --image frontend/public/samples/coffee.png
 ```
 
 ## HTTP API

@@ -32,6 +32,10 @@ pub fn parse_invoice(input: &str) -> DecodeResult<Bolt11Invoice> {
 /// # Errors
 /// Returns an error for invalid input or an unrepresentable expiration time.
 pub fn decode(input: &str) -> DecodeResult<DecodedInvoice> {
+    crate::inspect(input, None).0
+}
+
+pub(crate) fn decode_fields(input: &str) -> DecodeResult<DecodedInvoice> {
     let invoice = parse_invoice(input)?;
     let (description, description_hash) = match invoice.description() {
         Bolt11InvoiceDescriptionRef::Direct(value) => (Some(value.to_string()), None),
@@ -85,6 +89,7 @@ pub fn decode(input: &str) -> DecodeResult<DecodedInvoice> {
     let expired = invoice.is_expired();
 
     Ok(DecodedInvoice {
+        validation: crate::ValidationReport::default(),
         network,
         amount_msat,
         description,
